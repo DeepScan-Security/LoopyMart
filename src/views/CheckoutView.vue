@@ -25,6 +25,21 @@ const total = computed(() =>
   items.value.reduce((s, i) => s + i.product_price * i.quantity, 0)
 )
 
+function loadRazorpay() {
+  return new Promise((resolve) => {
+    if (window.Razorpay) {
+      resolve(window.Razorpay)
+      return
+    }
+    const script = document.createElement('script')
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.async = true
+    script.onload = () => resolve(window.Razorpay)
+    script.onerror = () => resolve(null)
+    document.body.appendChild(script)
+  })
+}
+
 async function placeOrder() {
   if (!shippingAddress.value.trim()) {
     error.value = 'Please enter shipping address'
@@ -33,14 +48,58 @@ async function placeOrder() {
   submitting.value = true
   error.value = ''
   try {
-    await orders.create({ shipping_address: shippingAddress.value.trim() })
-    sessionStorage.setItem('cartCount', '0')
-    router.push({ name: 'Orders' })
+    const payRes = await orders.createPayment({ shipping_address: shippingAddress.value.trim() }).catch((e) => {
+      if (e.response?.status === 503) return null
+      throw e
+    })
+    if (!payRes) {
+      await orders.create({ shipping_address: shippingAddress.value.trim() })
+      sessionStorage.setItem('cartCount', '0')
+      router.push({ name: 'Orders' })
+      return
+    }
+    const { order_id, amount_paise, razorpay_order_id, key_id } = payRes.data
+    const Razorpay = await loadRazorpay()
+    if (!Razorpay) {
+      error.value = 'Payment script failed to load. Try again or use Place Order without payment.'
+      return
+    }
+    const options = {
+      key: key_id,
+      amount: amount_paise,
+      order_id: razorpay_order_id,
+      name: 'Flipkart Clone',
+      description: 'Order payment',
+      handler: async (response) => {
+        try {
+          await orders.verifyPayment({
+            order_id,
+            razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+          })
+          sessionStorage.setItem('cartCount', '0')
+          router.push({ name: 'Orders' })
+        } catch (e) {
+          error.value = e.response?.data?.detail || 'Payment verification failed'
+        } finally {
+          submitting.value = false
+        }
+      },
+      prefill: { email: '' },
+      theme: { color: '#2874f0' },
+    }
+    const rzp = new Razorpay(options)
+    rzp.on('payment.failed', () => {
+      error.value = 'Payment failed or was cancelled'
+      submitting.value = false
+    })
+    rzp.open()
+    return
   } catch (e) {
     error.value = e.response?.data?.detail || 'Failed to place order'
-  } finally {
-    submitting.value = false
   }
+  submitting.value = false
 }
 </script>
 
@@ -74,7 +133,7 @@ async function placeOrder() {
       </div>
       <p v-if="error" class="error">{{ error }}</p>
       <button type="submit" class="btn btn-primary" :disabled="submitting">
-        {{ submitting ? 'Placing order...' : 'Place Order' }}
+        {{ submitting ? 'Opening payment...' : 'Pay with Razorpay / Place Order' }}
       </button>
     </form>
   </div>

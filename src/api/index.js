@@ -12,7 +12,14 @@ export const categories = {
 }
 
 export const products = {
-  list: (params) => client.get('/products', { params }),
+  list: (params = {}) => {
+    const searchParams = new URLSearchParams()
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') searchParams.set(k, String(v))
+    })
+    const qs = searchParams.toString()
+    return client.get(qs ? `/products?${qs}` : '/products')
+  },
   get: (id) => client.get(`/products/${id}`),
 }
 
@@ -27,6 +34,8 @@ export const orders = {
   list: () => client.get('/orders'),
   get: (id) => client.get(`/orders/${id}`),
   create: (data) => client.post('/orders', data),
+  createPayment: (data) => client.post('/orders/create-payment', data),
+  verifyPayment: (data) => client.post('/orders/verify-payment', data),
 }
 
 export const admin = {
@@ -43,4 +52,5 @@ export const admin = {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
+  listOrders: () => client.get('/admin/orders'),
 }

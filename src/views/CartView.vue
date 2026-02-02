@@ -25,7 +25,9 @@ const total = computed(() =>
 function imageUrl(url) {
   if (!url) return '/dummy-product.png'
   if (url.startsWith('http') || url.startsWith('//')) return url
-  if (url.startsWith('/static/')) return (import.meta.env.DEV ? 'http://127.0.0.1:8001' : '') + url
+  // Use VITE_STATIC_URL env variable or default to API proxy in dev
+  const staticUrl = import.meta.env.VITE_STATIC_URL || ''
+  if (url.startsWith('/static/')) return staticUrl + url
   return url
 }
 

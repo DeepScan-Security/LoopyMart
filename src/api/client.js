@@ -1,7 +1,13 @@
 import axios from 'axios'
 
+/**
+ * API base URL from environment variable or default to /api for proxy
+ * In production, set VITE_API_BASE_URL to your API server URL
+ */
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
+
 const client = axios.create({
-  baseURL: '/api',
+  baseURL: apiBaseUrl,
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -26,3 +32,15 @@ client.interceptors.response.use(
 )
 
 export default client
+
+/**
+ * Get the static files server URL
+ * In production, set VITE_STATIC_URL to your static files server URL
+ */
+export const getStaticUrl = (path) => {
+  const staticBaseUrl = import.meta.env.VITE_STATIC_URL || ''
+  if (path && path.startsWith('/')) {
+    return `${staticBaseUrl}${path}`
+  }
+  return path
+}

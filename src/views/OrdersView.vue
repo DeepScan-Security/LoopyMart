@@ -53,6 +53,9 @@ onMounted(async () => {
   padding: 2rem;
   text-align: center;
 }
+.empty .btn {
+  margin-top: 1rem;
+}
 .order-list {
   display: flex;
   flex-direction: column;

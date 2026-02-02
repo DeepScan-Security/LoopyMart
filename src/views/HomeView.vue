@@ -1,10 +1,12 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import { categories, products } from '@/api'
 
+const router = useRouter()
 const featured = ref([])
 const categoryList = ref([])
+const searchQuery = ref('')
 
 onMounted(async () => {
   try {
@@ -23,8 +25,19 @@ onMounted(async () => {
 function imageUrl(url) {
   if (!url) return '/dummy-product.png'
   if (url.startsWith('http') || url.startsWith('//')) return url
-  if (url.startsWith('/static/')) return (import.meta.env.DEV ? 'http://127.0.0.1:8001' : '') + url
+  // Use VITE_STATIC_URL env variable or default to API proxy in dev
+  const staticUrl = import.meta.env.VITE_STATIC_URL || ''
+  if (url.startsWith('/static/')) return staticUrl + url
   return url
+}
+
+function doSearch() {
+  const q = searchQuery.value.trim()
+  if (q) {
+    router.push({ name: 'Products', query: { q } })
+  } else {
+    router.push({ name: 'Products' })
+  }
 }
 </script>
 
@@ -33,7 +46,17 @@ function imageUrl(url) {
     <section class="hero">
       <h1>Welcome to Flipkart Clone</h1>
       <p>Shop electronics, fashion, and more.</p>
-      <RouterLink to="/products" class="btn btn-primary">Browse Products</RouterLink>
+      <div class="search-box">
+        <input
+          v-model="searchQuery"
+          type="search"
+          placeholder="Search for products..."
+          class="search-input"
+          @keyup.enter="doSearch"
+        />
+        <button type="button" class="btn btn-primary search-btn" @click="doSearch">Search</button>
+      </div>
+      <RouterLink to="/products" class="browse-link">or browse all products</RouterLink>
     </section>
     <section v-if="categoryList.length" class="categories">
       <h2>Categories</h2>
@@ -83,6 +106,29 @@ function imageUrl(url) {
   color: var(--color-text);
   opacity: 0.9;
   margin-bottom: 1.5rem;
+}
+.search-box {
+  display: flex;
+  gap: 0.5rem;
+  max-width: 500px;
+  margin: 0 auto 1rem;
+}
+.search-input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+.search-btn {
+  padding: 0.75rem 1.5rem;
+  white-space: nowrap;
+}
+.browse-link {
+  display: inline-block;
+  color: #2874f0;
+  font-size: 0.9rem;
+  text-decoration: underline;
 }
 .categories, .featured {
   margin-top: 2rem;

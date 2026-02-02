@@ -1,6 +1,9 @@
 <script setup>
-import { computed } from 'vue'
-import { RouterLink } from 'vue-router'
+import { ref, computed } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
+
+const router = useRouter()
+const searchQuery = ref('')
 
 const user = computed(() => {
   try {
@@ -19,6 +22,16 @@ const cartCount = computed(() => {
   }
 })
 
+function doSearch() {
+  const q = searchQuery.value.trim()
+  if (q) {
+    router.push({ name: 'Products', query: { q } })
+  } else {
+    router.push({ name: 'Products' })
+  }
+  searchQuery.value = ''
+}
+
 function logout() {
   localStorage.removeItem('token')
   localStorage.removeItem('user')
@@ -31,11 +44,21 @@ function logout() {
   <header class="header">
     <div class="header-inner">
       <RouterLink to="/" class="logo">Flipkart Clone</RouterLink>
+      <div class="header-search">
+        <input
+          v-model="searchQuery"
+          type="search"
+          placeholder="Search products..."
+          class="header-search-input"
+          @keyup.enter="doSearch"
+        />
+        <button type="button" class="header-search-btn" @click="doSearch">🔍</button>
+      </div>
       <nav class="nav">
         <RouterLink to="/">Home</RouterLink>
         <RouterLink to="/products">Products</RouterLink>
         <RouterLink v-if="user" to="/orders">Orders</RouterLink>
-        <RouterLink v-if="user?.is_admin" to="/admin">Admin</RouterLink>
+        <RouterLink v-if="user?.is_admin === true" to="/admin">Admin</RouterLink>
         <RouterLink v-if="user" to="/cart" class="cart-link">
           Cart <span v-if="cartCount > 0" class="badge">{{ cartCount }}</span>
         </RouterLink>
@@ -45,7 +68,7 @@ function logout() {
         </template>
         <template v-else>
           <RouterLink to="/login" class="btn btn-outline">Login</RouterLink>
-          <RouterLink to="/register" class="btn btn-primary">Register</RouterLink>
+          <RouterLink to="/register" class="btn btn-outline">Register</RouterLink>
         </template>
       </nav>
     </div>
@@ -72,6 +95,35 @@ function logout() {
   font-weight: 700;
   color: #fff;
   text-decoration: none;
+}
+.header-search {
+  display: flex;
+  flex: 1;
+  max-width: 400px;
+  margin: 0 1rem;
+}
+.header-search-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  border-radius: 4px 0 0 4px;
+  font-size: 0.9rem;
+}
+.header-search-btn {
+  padding: 0.5rem 0.75rem;
+  background: #fff;
+  border: none;
+  border-radius: 0 4px 4px 0;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.header-search-btn:hover {
+  background: #f0f0f0;
+}
+@media (max-width: 600px) {
+  .header-search {
+    display: none;
+  }
 }
 .nav {
   display: flex;
@@ -117,11 +169,11 @@ function logout() {
   border: 1px solid rgba(255, 255, 255, 0.8);
 }
 .btn-primary {
-  background: #ffe11b;
+  background: #fff;
   color: #2874f0;
 }
 .btn-primary:hover {
-  background: #f7d700;
+  background: #f0f0f0;
   color: #1a5bc7;
 }
 </style>

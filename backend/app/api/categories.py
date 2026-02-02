@@ -1,28 +1,27 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+"""
+Categories API routes.
+Categories are stored in MongoDB.
+"""
 
-from app.db.session import get_db
-from app.models.category import Category
-from app.schemas.category import CategoryCreate, CategoryResponse
+from fastapi import APIRouter, HTTPException, status
+
+from app.db.categories_mongo import category_get_by_slug, category_list
+from app.schemas.category import CategoryResponse
 
 router = APIRouter(prefix="/categories", tags=["categories"])
 
 
 @router.get("", response_model=list[CategoryResponse])
-async def list_categories(db: AsyncSession = Depends(get_db)) -> list[CategoryResponse]:
-    result = await db.execute(select(Category).order_by(Category.name))
-    categories = result.scalars().all()
-    return [CategoryResponse.model_validate(c) for c in categories]
+async def list_categories() -> list[CategoryResponse]:
+    """List all categories."""
+    categories = await category_list()
+    return [CategoryResponse(**c) for c in categories]
 
 
 @router.get("/{slug}", response_model=CategoryResponse)
-async def get_category_by_slug(
-    slug: str,
-    db: AsyncSession = Depends(get_db),
-) -> CategoryResponse:
-    result = await db.execute(select(Category).where(Category.slug == slug))
-    category = result.scalar_one_or_none()
+async def get_category_by_slug(slug: str) -> CategoryResponse:
+    """Get a category by its slug."""
+    category = await category_get_by_slug(slug)
     if not category:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
-    return CategoryResponse.model_validate(category)
+    return CategoryResponse(**category)

@@ -6,88 +6,207 @@ A minimal yet scalable Flipkart-like e-commerce app with Vue 3 frontend and Fast
 
 - **User/Admin authentication** (JWT)
 - **Home page** with featured products and categories
-- **Product listing** with category filters
+- **Product listing** with category filters and search
 - **Product detail** with add-to-cart
 - **Cart** and **Checkout**
 - **Order history**
 - **Admin**: upload/manage products and categories
+- **Payment Gateway**: Razorpay integration (optional)
 
 ## Tech Stack
 
-- **Frontend**: Vue 3, Vue Router, Axios, Vite (Node 20+ required for build)
-- **Backend**: Python 3.10+, FastAPI, SQLAlchemy (async), SQLite, JWT, bcrypt
+- **Frontend**: Vue 3, Vue Router, Axios, Vite (Node 20+ required)
+- **Backend**: Python 3.10+, FastAPI, JWT authentication, bcrypt
+
+## Database Architecture
+
+| Data | Database | Description |
+|------|----------|-------------|
+| **Users** | PostgreSQL (SQL) | User authentication and profiles |
+| **Products** | MongoDB (NoSQL) | Product catalog |
+| **Categories** | MongoDB (NoSQL) | Product categories |
+| **Cart** | MongoDB (NoSQL) | Shopping cart items |
+| **Orders** | MongoDB (NoSQL) | Order history |
+
+This hybrid approach uses:
+- **PostgreSQL** for user data (ACID compliance, secure authentication)
+- **MongoDB** for product/catalog data (flexible schema, easy scaling)
 
 ## Project Structure
 
 ```
 Flipkart-clone/
-├── backend/           # FastAPI app
+├── backend/              # FastAPI app
 │   ├── app/
-│   │   ├── api/      # Routes (auth, categories, products, cart, orders, admin)
-│   │   ├── core/     # Config, security
-│   │   ├── db/       # Session, seed
-│   │   ├── models/   # SQLAlchemy models
-│   │   └── schemas/  # Pydantic schemas
+│   │   ├── api/          # Routes (auth, categories, products, cart, orders, admin)
+│   │   ├── core/         # Config, security
+│   │   ├── db/           # Database operations (SQL + MongoDB)
+│   │   ├── models/       # SQLAlchemy models (User only)
+│   │   └── schemas/      # Pydantic schemas
+│   ├── .env.example      # Environment variables template
 │   └── requirements.txt
-├── public/           # Static assets (e.g. dummy-product.png)
+├── public/               # Static assets
 ├── src/
-│   ├── api/          # API client
+│   ├── api/              # API client
 │   ├── components/
 │   ├── router/
 │   └── views/
+├── .env.example          # Frontend environment template
 └── package.json
 ```
 
-## Run Locally
+## Setup
 
-### 1. Backend
+### Prerequisites
+
+- **Python 3.10+**
+- **Node.js 20+**
+- **PostgreSQL** (for user data)
+- **MongoDB** (for product/catalog data)
+
+### 1. Backend Setup
 
 ```sh
 cd backend
+
+# Create virtual environment
 python3 -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
-# If pip has SSL issues: pip install --trusted-host pypi.org --trusted-host files.pythonhosted.org -r requirements.txt
-uvicorn app.main:app --host 127.0.0.1 --port 8001
+
+# Copy and configure environment variables
+cp .env.example .env
+# Edit .env with your database credentials and secret key
 ```
 
-Backend runs at **http://127.0.0.1:8001**. DB and seed (admin user + sample product) are created on first start.
+#### Required Environment Variables
 
-### 2. Frontend
+```env
+# PostgreSQL (for users)
+DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/flipkart_users
 
-Requires Node 20+ (see `package.json` engines). If you have Node 18, upgrade or use `nvm use 20`.
+# MongoDB (for products, categories, cart, orders)
+MONGODB_URL=mongodb://localhost:27017
+MONGODB_DB_NAME=flipkart_clone
+
+# JWT Secret Key (generate a strong random key)
+SECRET_KEY=your-secret-key-here
+
+# Admin credentials for initial setup (optional)
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=secure-password
+```
+
+#### Start the Backend
 
 ```sh
+uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload
+```
+
+Backend runs at **http://127.0.0.1:8001**
+
+### 2. Frontend Setup
+
+```sh
+# From project root
 npm install
+
+# Copy and configure environment variables (optional)
+cp .env.example .env.local
+# Edit .env.local if needed
+
 npm run dev
 ```
 
 Frontend runs at **http://localhost:5173** and proxies `/api` to the backend.
 
-### 3. Default credentials
+### 3. Database Setup
 
-- **Admin**: `admin@example.com` / `admin123`
-- Register a new user for customer flow.
+**PostgreSQL:**
+```sh
+createdb flipkart_users
+```
+Tables are created automatically on first start.
+
+**MongoDB:**
+Ensure MongoDB is running on `localhost:27017`. Collections and indexes are created automatically.
+
+## Environment Variables
+
+### Backend (`.env`)
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DATABASE_URL` | Yes | - | PostgreSQL connection URL |
+| `MONGODB_URL` | Yes | - | MongoDB connection URL |
+| `MONGODB_DB_NAME` | Yes | - | MongoDB database name |
+| `SECRET_KEY` | Yes | - | JWT signing key |
+| `ALGORITHM` | No | `HS256` | JWT algorithm |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | No | `10080` | Token expiry (7 days) |
+| `CORS_ORIGINS` | No | `localhost:5173` | Allowed CORS origins |
+| `ADMIN_EMAIL` | No | - | Initial admin email |
+| `ADMIN_PASSWORD` | No | - | Initial admin password |
+| `RAZORPAY_KEY_ID` | No | - | Razorpay API key |
+| `RAZORPAY_KEY_SECRET` | No | - | Razorpay secret |
+
+### Frontend (`.env.local`)
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `VITE_API_URL` | No | `http://127.0.0.1:8001` | Backend URL for dev proxy |
+| `VITE_API_BASE_URL` | No | `/api` | API base URL |
+| `VITE_STATIC_URL` | No | - | Static files URL |
+
+## Payment Gateway (Razorpay)
+
+To enable online payments, add to `.env`:
+```env
+RAZORPAY_KEY_ID=rzp_test_xxxx
+RAZORPAY_KEY_SECRET=your_secret
+```
+
+Get test keys from [Razorpay Dashboard](https://dashboard.razorpay.com/).
+
+If not configured, "Place Order" creates orders without payment (COD flow).
 
 ## API Overview
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/auth/register` | Register |
+| POST | `/auth/register` | Register new user |
 | POST | `/auth/login` | Login |
 | GET | `/auth/me` | Current user (auth) |
 | GET | `/categories` | List categories |
 | GET | `/categories/{slug}` | Get category by slug |
-| GET | `/products` | List products (query: `category_slug`, `skip`, `limit`) |
+| GET | `/products` | List products (`category_slug`, `q`, `skip`, `limit`) |
 | GET | `/products/{id}` | Product detail |
-| GET/POST/PATCH/DELETE | `/cart`, `/cart/{id}` | Cart (auth) |
-| GET/POST | `/orders`, `/orders` | Orders (auth) |
+| GET/POST/PATCH/DELETE | `/cart` | Cart operations (auth) |
+| GET/POST | `/orders` | Orders (auth) |
+| POST | `/orders/create-payment` | Create Razorpay order (auth) |
+| POST | `/orders/verify-payment` | Verify payment (auth) |
+| GET | `/admin/orders` | List all orders (admin) |
 | POST/PUT/DELETE | `/admin/categories`, `/admin/products` | Admin CRUD |
 | POST | `/admin/upload` | Upload image (admin) |
 
-## Build for production
+## Build for Production
 
 ```sh
+# Frontend
 npm run build
-# Serve dist/ with any static server; point API base URL to your backend.
+# Serve dist/ with any static server
+
+# Backend
+uvicorn app.main:app --host 0.0.0.0 --port 8001
 ```
+
+Set production environment variables and configure CORS origins appropriately.
+
+## Security Notes
+
+- Never commit `.env` files to version control
+- Use strong, unique `SECRET_KEY` in production
+- Configure CORS origins for your production domain
+- Use HTTPS in production
+- Admin credentials in env vars are for initial setup only

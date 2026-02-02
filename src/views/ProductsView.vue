@@ -1,39 +1,79 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { RouterLink } from 'vue-router'
 import { categories, products } from '@/api'
 
 const route = useRoute()
+const router = useRouter()
 const list = ref([])
 const categoryList = ref([])
 const loading = ref(true)
+const searchQuery = ref('')
 
-async function load() {
+async function load(searchQ) {
   loading.value = true
+  // Read q from URL on load (unless explicitly passed e.g. from doSearch)
+  if (route.query.q && searchQuery.value === '') {
+    searchQuery.value = route.query.q
+  }
   try {
     const slug = route.query.category
-    const params = slug ? { category_slug: slug } : {}
+    // Use explicit searchQ when provided (avoids race with router.update)
+    const q = searchQ !== undefined ? (searchQ?.trim() || null) : (searchQuery.value?.trim() || route.query.q || null)
+    const params = { limit: 100 }
+    if (slug) params.category_slug = slug
+    if (q) {
+      params.q = q
+      params.search = q
+    }
     const [catRes, prodRes] = await Promise.all([
       categories.list(),
       products.list(params),
     ])
     categoryList.value = catRes.data
     list.value = prodRes.data
-  } catch (_) {
+  } catch (e) {
     list.value = []
   } finally {
     loading.value = false
   }
 }
 
+function doSearch() {
+  // Update URL with search query
+  const query = { ...route.query }
+  if (searchQuery.value?.trim()) {
+    query.q = searchQuery.value.trim()
+  } else {
+    delete query.q
+  }
+  router.replace({ name: 'Products', query })
+  // Pass search term explicitly so filter is applied immediately (no race with route)
+  load(searchQuery.value?.trim() || null)
+}
+
 onMounted(load)
 watch(() => route.query.category, load)
+watch(() => route.query.q, (newQ) => {
+  if (newQ !== searchQuery.value) {
+    searchQuery.value = newQ || ''
+    load()
+  }
+})
 
 function imageUrl(url) {
   if (!url) return '/dummy-product.png'
   if (url.startsWith('http') || url.startsWith('//')) return url
-  if (url.startsWith('/static/')) return (import.meta.env.DEV ? 'http://127.0.0.1:8001' : '') + url
+  // Use VITE_STATIC_URL env variable or default to API proxy in dev
+  const staticUrl = import.meta.env.VITE_STATIC_URL || ''
+  // #region agent log
+  if (url.startsWith('/static/')) {
+    const finalUrl = staticUrl + url
+    fetch('http://127.0.0.1:7242/ingest/0047ae72-2236-4c94-b642-e409f5c5e173',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ProductsView.vue:imageUrl',message:'Image URL construction',data:{originalUrl:url,staticUrl:staticUrl,finalUrl:finalUrl},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+    return finalUrl
+  }
+  // #endregion
   return url
 }
 </script>
@@ -41,6 +81,16 @@ function imageUrl(url) {
 <template>
   <div class="products-page">
     <h1>Products</h1>
+    <div class="search-row">
+      <input
+        v-model="searchQuery"
+        type="search"
+        placeholder="Search products..."
+        class="search-input"
+        @keyup.enter="doSearch"
+      />
+      <button type="button" class="btn btn-primary search-btn" @click="doSearch">Search</button>
+    </div>
     <div class="filters">
       <RouterLink
         :to="{ name: 'Products' }"
@@ -112,6 +162,23 @@ function imageUrl(url) {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 1.25rem;
+}
+.search-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.search-input {
+  flex: 1;
+  min-width: 180px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+.search-btn {
+  white-space: nowrap;
 }
 .product-card {
   text-decoration: none;

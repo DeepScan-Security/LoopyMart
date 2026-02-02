@@ -21,8 +21,10 @@ router.beforeEach((to, _from, next) => {
   document.title = to.meta.title ? `${to.meta.title} | Flipkart Clone` : 'Flipkart Clone'
   const token = localStorage.getItem('token')
   const user = JSON.parse(localStorage.getItem('user') || 'null')
+  // Only treat boolean `true` as admin. This prevents `"false"` (string) from being truthy.
+  const isAdmin = user?.is_admin === true
   if (to.meta.auth && !token) return next({ name: 'Login', query: { redirect: to.fullPath } })
-  if (to.meta.admin && (!token || !user?.is_admin)) return next({ name: 'Login', query: { redirect: to.fullPath } })
+  if (to.meta.admin && (!token || !isAdmin)) return next({ name: 'Login', query: { redirect: to.fullPath } })
   next()
 })
 

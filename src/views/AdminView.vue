@@ -4,6 +4,8 @@ import { categories, products, admin } from '@/api'
 
 const categoriesList = ref([])
 const productsList = ref([])
+const ordersList = ref([])
+const ordersError = ref('')
 const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
@@ -29,15 +31,37 @@ onMounted(load)
 
 async function load() {
   loading.value = true
+  categoriesList.value = []
+  productsList.value = []
+  ordersList.value = []
+  ordersError.value = ''
   try {
-    const [catRes, prodRes] = await Promise.all([
+    const [catRes, prodRes, ordRes] = await Promise.allSettled([
       categories.list(),
-      products.list({ limit: 200 }),
+      products.list({ limit: 100 }),
+      admin.listOrders(),
     ])
-    categoriesList.value = catRes.data
-    productsList.value = prodRes.data
-  } catch (_) {}
-  finally {
+    if (catRes.status === 'fulfilled' && catRes.value?.data != null) {
+      categoriesList.value = catRes.value.data
+    }
+    if (prodRes.status === 'fulfilled' && prodRes.value?.data != null) {
+      productsList.value = prodRes.value.data
+    }
+    if (ordRes.status === 'fulfilled' && ordRes.value?.data != null) {
+      ordersList.value = Array.isArray(ordRes.value.data) ? ordRes.value.data : []
+    } else if (ordRes.status === 'rejected') {
+      const statusCode = ordRes.reason?.response?.status
+      if (statusCode === 403) {
+        ordersError.value = 'Admin access required. Log in as admin@example.com (password: admin123) to see all orders from all users.'
+      } else if (statusCode === 401) {
+        ordersError.value = 'Please log in as admin to see orders.'
+      } else {
+        ordersError.value = ordRes.reason?.response?.data?.detail || 'Failed to load orders.'
+      }
+    }
+  } catch (e) {
+    // fallback
+  } finally {
     loading.value = false
   }
 }
@@ -49,11 +73,19 @@ const categoryOptions = computed(() =>
 function imageUrl(url) {
   if (!url) return '/dummy-product.png'
   if (url.startsWith('http') || url.startsWith('//')) return url
-  if (url.startsWith('/static/')) return (import.meta.env.DEV ? 'http://127.0.0.1:8001' : '') + url
+  // Use VITE_STATIC_URL env variable or default to API proxy in dev
+  const staticUrl = import.meta.env.VITE_STATIC_URL || ''
+  if (url.startsWith('/static/')) return staticUrl + url
   return url
 }
 
-function openAddProduct() {
+async function openAddProduct() {
+  if (categoriesList.value.length === 0) {
+    try {
+      const catRes = await categories.list()
+      categoriesList.value = catRes.data ?? []
+    } catch (_) {}
+  }
   editingProduct.value = null
   productForm.value = {
     name: '',
@@ -112,6 +144,16 @@ async function saveProduct() {
       success.value = 'Product created'
     }
     await load()
+    showProductForm.value = false
+    editingProduct.value = null
+    productForm.value = {
+      name: '',
+      description: '',
+      price: '',
+      image_url: '',
+      stock: 0,
+      category_id: categoriesList.value[0]?.id ?? null,
+    }
     if (uploadFile.value) uploadFile.value.value = ''
   } catch (e) {
     error.value = e.response?.data?.detail || 'Failed to save product'
@@ -165,6 +207,8 @@ async function saveCategory() {
       success.value = 'Category created'
     }
     await load()
+    showCategoryForm.value = false
+    categoryForm.value = { name: '', slug: '' }
   } catch (e) {
     error.value = e.response?.data?.detail || 'Failed to save category'
   } finally {
@@ -192,6 +236,9 @@ async function deleteCategory(id) {
       </button>
       <button type="button" class="tab" :class="{ active: tab === 'categories' }" @click="tab = 'categories'">
         Categories
+      </button>
+      <button type="button" class="tab" :class="{ active: tab === 'orders' }" @click="tab = 'orders'">
+        Orders
       </button>
     </div>
 
@@ -232,11 +279,51 @@ async function deleteCategory(id) {
       <div v-if="loading" class="loading">Loading...</div>
       <ul v-else class="category-list">
         <li v-for="c in categoriesList" :key="c.id" class="card category-item">
-          <span>{{ c.name }}</span> <span class="slug">{{ c.slug }}</span>
-          <button type="button" class="btn small" @click="openEditCategory(c)">Edit</button>
-          <button type="button" class="btn btn-danger small" @click="deleteCategory(c.id)">Delete</button>
+          <span class="category-item-label">{{ c.name }}</span>
+          <span class="slug">{{ c.slug }}</span>
+          <div class="category-item-actions">
+            <button type="button" class="btn small" @click="openEditCategory(c)">Edit</button>
+            <button type="button" class="btn btn-danger small" @click="deleteCategory(c.id)">Delete</button>
+          </div>
         </li>
       </ul>
+    </div>
+
+    <div v-if="tab === 'orders'" class="section">
+      <h2>All Orders (all users)</h2>
+      <p v-if="ordersError" class="error orders-error">{{ ordersError }}</p>
+      <p v-else-if="!loading && ordersList.length === 0" class="empty">No orders yet.</p>
+      <div v-else-if="loading" class="loading">Loading...</div>
+      <div v-else class="table-wrap card">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Order #</th>
+              <th>Placed by</th>
+              <th>Status</th>
+              <th>Total</th>
+              <th>Address</th>
+              <th>Items</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="order in ordersList" :key="order.id">
+              <td>#{{ order.id }}</td>
+              <td class="user-cell">{{ order.user_email || order.user_name || '—' }} <span v-if="order.user_name && order.user_email" class="user-name">({{ order.user_name }})</span></td>
+              <td><span class="order-status">{{ order.status }}</span></td>
+              <td>₹{{ order.total.toLocaleString('en-IN') }}</td>
+              <td class="address-cell">{{ order.shipping_address }}</td>
+              <td>
+                <ul class="order-items-list">
+                  <li v-for="item in order.items" :key="item.id">
+                    {{ item.product_name }} × {{ item.quantity }}
+                  </li>
+                </ul>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- Product modal -->
@@ -377,12 +464,25 @@ async function deleteCategory(id) {
   padding: 0.75rem 1rem;
   margin-bottom: 0.5rem;
 }
+.category-item-label {
+  font-weight: 500;
+  min-width: 0;
+}
 .category-item .slug {
   color: #666;
   font-size: 0.9rem;
+  flex: 1;
+  min-width: 0;
 }
-.category-item .btn {
+.category-item-actions {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+.category-item-actions .small {
+  margin-right: 0;
 }
 .modal {
   position: fixed;
@@ -419,5 +519,45 @@ async function deleteCategory(id) {
   display: flex;
   gap: 0.75rem;
   margin-top: 1rem;
+}
+.order-status {
+  text-transform: capitalize;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  background: #e8f4fd;
+  color: #2874f0;
+}
+.user-cell {
+  font-size: 0.9rem;
+}
+.user-cell .user-name {
+  color: #666;
+  font-size: 0.85rem;
+}
+.address-cell {
+  max-width: 200px;
+  font-size: 0.85rem;
+  color: #555;
+}
+.order-items-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.85rem;
+}
+.order-items-list li {
+  padding: 0.1rem 0;
+}
+.empty {
+  padding: 2rem;
+  text-align: center;
+  color: #666;
+}
+.orders-error {
+  margin: 0.5rem 0;
+  padding: 0.75rem;
+  background: #fef2f2;
+  border-radius: 4px;
 }
 </style>

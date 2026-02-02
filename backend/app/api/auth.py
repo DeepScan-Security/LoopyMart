@@ -31,7 +31,8 @@ async def register(
     db.add(user)
     await db.flush()
     await db.refresh(user)
-    token = create_access_token(user.id)
+    # Keep token claims consistent with login (frontend may rely on is_admin).
+    token = create_access_token(user.id, extra={"is_admin": user.is_admin})
     return Token(
         access_token=token,
         user=UserResponse.model_validate(user),
