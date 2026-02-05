@@ -31,6 +31,8 @@ class ProductUpdate(BaseModel):
 class ProductResponse(ProductBase):
     """Schema for product response (MongoDB)."""
     id: str  # MongoDB ObjectId string
+    average_rating: float | None = None
+    total_ratings: int | None = None
 
     class Config:
         from_attributes = True

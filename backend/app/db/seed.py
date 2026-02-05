@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.security import get_password_hash
 from app.db.categories_mongo import category_create, category_get_by_slug
+from app.db.coupons_mongo import coupon_seed_default
 from app.db.products_mongo import product_create, product_list
 from app.models.user import User
 
@@ -20,6 +21,7 @@ async def seed_db(db: AsyncSession) -> None:
     - Creates admin user if ADMIN_EMAIL and ADMIN_PASSWORD are set in env vars
     - Creates default Electronics category in MongoDB
     - Creates sample product if no products exist
+    - Seeds default coupons
     """
     # SQL: Create admin user if credentials are provided
     if settings.admin_email and settings.admin_password:
@@ -55,3 +57,6 @@ async def seed_db(db: AsyncSession) -> None:
             stock=50,
             category_id=cat["id"],
         )
+
+    # MongoDB: Seed default coupons
+    await coupon_seed_default()

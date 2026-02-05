@@ -44,6 +44,8 @@ class OrderResponse(BaseModel):
     status: str
     shipping_address: str
     items: list[OrderItemResponse] = []
+    created_at: str | None = None
+    payment_status: str | None = None
 
     class Config:
         from_attributes = True

@@ -33,12 +33,26 @@ def _order_to_response(order: dict) -> OrderResponse:
         )
         for item in order.get("items", [])
     ]
+    
+    # Get payment status if available
+    payment_status = None
+    if order.get("status") == "paid":
+        payment_status = "SUCCESS"
+    elif order.get("status") == "pending":
+        payment_status = "PENDING"
+    elif order.get("status") in ["shipped", "delivered"]:
+        payment_status = "SUCCESS"
+    elif order.get("status") == "cancelled":
+        payment_status = "FAILED"
+    
     return OrderResponse(
         id=order["id"],
         total=order["total"],
         status=order["status"],
         shipping_address=order["shipping_address"],
         items=items,
+        created_at=order.get("created_at").isoformat() if order.get("created_at") else None,
+        payment_status=payment_status,
     )
 
 

@@ -15,7 +15,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api import admin, auth, cart, categories, orders, products
+from app.api import admin, auth, cart, categories, chat, kyc, orders, payments, products, ratings, spin
 from app.core.config import settings
 from app.db.mongo import close_mongo, init_mongo
 from app.db.seed import seed_db
@@ -78,11 +78,6 @@ app.add_middleware(
 
 # Mount static files if directory exists
 static_dir = get_static_dir()
-# #region agent log
-import json as _json_debug
-_debug_static_data = {"location": "main.py:mount_static", "message": "Static directory mount check", "data": {"static_dir": str(static_dir), "exists": static_dir.exists()}, "timestamp": __import__("time").time() * 1000, "sessionId": "debug-session", "hypothesisId": "H2"}
-with open("/Users/shubham2201/Documents/Projects/Flipkart-clone/.cursor/debug.log", "a") as _f: _f.write(_json_debug.dumps(_debug_static_data) + "\n")
-# #endregion
 if static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
@@ -92,6 +87,11 @@ app.include_router(categories.router)
 app.include_router(products.router)
 app.include_router(cart.router)
 app.include_router(orders.router)
+app.include_router(payments.router)
+app.include_router(kyc.router)
+app.include_router(chat.router)
+app.include_router(ratings.router)
+app.include_router(spin.router)
 app.include_router(admin.router)
 
 

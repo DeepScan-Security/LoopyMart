@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException, Query, status
 from app.core.config import settings
 from app.db.categories_mongo import category_get_by_slug
 from app.db.products_mongo import product_get, product_list
+from app.db.ratings_mongo import rating_get_product_stats
 from app.schemas.product import ProductResponse
 
 router = APIRouter(prefix="/products", tags=["products"])
@@ -45,7 +46,18 @@ async def list_products(
         skip=skip,
         limit=limit,
     )
-    return [ProductResponse(**p) for p in products_data]
+    
+    # Add rating information to each product
+    result = []
+    for p in products_data:
+        stats = await rating_get_product_stats(p["id"])
+        result.append(ProductResponse(
+            **p,
+            average_rating=stats["average_rating"],
+            total_ratings=stats["total_ratings"],
+        ))
+    
+    return result
 
 
 @router.get("/{product_id}", response_model=ProductResponse)
@@ -54,4 +66,12 @@ async def get_product(product_id: str) -> ProductResponse:
     product = await product_get(product_id)
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
-    return ProductResponse(**product)
+    
+    # Add rating information
+    stats = await rating_get_product_stats(product_id)
+    
+    return ProductResponse(
+        **product,
+        average_rating=stats["average_rating"],
+        total_ratings=stats["total_ratings"],
+    )
