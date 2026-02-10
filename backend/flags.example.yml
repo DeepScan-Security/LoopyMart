@@ -1,0 +1,18 @@
+# CTF challenge flags - copy to flags.yml and set real values.
+# Each challenge has either "flag" (string) or "parts" (list) with optional "separator".
+
+challenges:
+  robots:
+    flag: "CTF{look_at_robots}"
+
+  challenge2:
+    flag: "CTF{single_flag}"
+
+  challenge3:
+    parts:
+      - "CTF{"
+      - "part1"
+      - "_"
+      - "part2"
+      - "}"
+    separator: ""

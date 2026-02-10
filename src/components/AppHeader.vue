@@ -43,7 +43,7 @@ function logout() {
 <template>
   <header class="header">
     <div class="header-inner">
-      <RouterLink to="/" class="logo">Flipkart Clone</RouterLink>
+      <RouterLink to="/" class="logo">Clipkart</RouterLink>
       <div class="header-search">
         <input
           v-model="searchQuery"
