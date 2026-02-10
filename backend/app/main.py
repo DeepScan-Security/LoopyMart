@@ -1,5 +1,5 @@
 """
-Flipkart Clone API - Main Application
+Clipkart Clone API - Main Application
 
 Database Architecture:
 - PostgreSQL (SQL): User authentication only
@@ -15,7 +15,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api import admin, auth, cart, categories, chat, kyc, orders, payments, products, ratings, spin
+from app.api import admin, auth, cart, categories, chat, ctf, kyc, orders, payments, products, ratings, spin
 from app.core.config import settings
 from app.db.mongo import close_mongo, init_mongo
 from app.db.seed import seed_db
@@ -62,7 +62,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title=settings.app_name,
-    description="E-commerce API with JWT authentication. Users in PostgreSQL, all other data in MongoDB.",
+    description="E-commerce API with JWT authentication. Users in SQL, all other data in MongoDB.",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -75,6 +75,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# CTF routes (before static mount so /robots.txt is handled by the app)
+app.include_router(ctf.router)
 
 # Mount static files if directory exists
 static_dir = get_static_dir()

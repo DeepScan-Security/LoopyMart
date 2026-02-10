@@ -44,7 +44,7 @@ function doSearch() {
 <template>
   <div class="home">
     <section class="hero">
-      <h1>Welcome to Flipkart Clone</h1>
+      <h1>Welcome to Clipkart</h1>
       <p>Shop electronics, fashion, and more.</p>
       <div class="search-box">
         <input
