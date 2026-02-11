@@ -45,7 +45,7 @@ class Settings(BaseSettings):
 
     # Application settings
     app_name: str = Field(
-        default_factory=lambda: get_yaml_value(_yaml_config, "app", "name", default=os.getenv("APP_NAME", "Flipkart Clone API"))
+        default_factory=lambda: get_yaml_value(_yaml_config, "app", "name", default=os.getenv("APP_NAME", "Clipkart Clone API"))
     )
     debug: bool = Field(
         default_factory=lambda: get_yaml_value(_yaml_config, "app", "debug", default=os.getenv("DEBUG", "false").lower() == "true")

@@ -203,6 +203,16 @@ uvicorn app.main:app --host 0.0.0.0 --port 8001
 
 Set production environment variables and configure CORS origins appropriately.
 
+### Production with reverse proxy (Option A)
+
+To expose one URL to users (frontend, API, and `/robots.txt` on the same host, backend port not public):
+
+1. Build the frontend with `VITE_API_BASE_URL=/api` and `VITE_STATIC_URL=` (see [.env.example](.env.example)).
+2. Run the backend on port 8001 (only the proxy should connect to it).
+3. Put a reverse proxy in front: serve the built `dist/` at `/`, and proxy `/api`, `/static`, and `/robots.txt` to the backend.
+
+See **[deploy/README.md](deploy/README.md)** and **[deploy/nginx.conf](deploy/nginx.conf)** for an nginx-based setup.
+
 ## Security Notes
 
 - Never commit `.env` files to version control

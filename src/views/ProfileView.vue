@@ -140,7 +140,7 @@ async function upgradeToBlack() {
   try {
     const res = await client.post('/auth/upgrade-black')
     user.value = res.data
-    success.value = 'Welcome to Flipkart Black! 🎉'
+    success.value = 'Welcome to Clipkart! '
   } catch (e) {
     error.value = e.response?.data?.detail || 'Failed to upgrade'
   }
@@ -171,7 +171,7 @@ async function upgradeToBlack() {
           <p>{{ user.email }}</p>
           <div class="badges">
             <span v-if="user.is_black_member" class="badge badge-black">
-              👑 Flipkart Black
+              👑 Clipkart
             </span>
             <span v-if="kyc && kyc.status === 'VERIFIED'" class="badge badge-verified">
               ✓ KYC Verified
@@ -314,11 +314,11 @@ async function upgradeToBlack() {
 
       <!-- Membership Tab -->
       <div v-if="activeTab === 'membership'" class="tab-content card">
-        <h3>Flipkart Black Membership</h3>
+        <h3>Clipkart Black Membership</h3>
         
         <div v-if="!user.is_black_member" class="membership-offer">
           <div class="membership-benefits">
-            <h4>Benefits of Flipkart Black:</h4>
+            <h4>Benefits of Clipkart Black:</h4>
             <ul>
               <li>👑 Exclusive badge on your profile</li>
               <li>🚚 Free express delivery on all orders</li>
@@ -327,13 +327,13 @@ async function upgradeToBlack() {
             </ul>
           </div>
           <button @click="upgradeToBlack" class="btn btn-primary btn-upgrade">
-            Upgrade to Flipkart Black
+            Upgrade to Clipkart Black
           </button>
         </div>
         
         <div v-else class="membership-active">
           <p class="membership-message">
-            🎉 You are a Flipkart Black member!
+            🎉 You are a Clipkart Black member!
           </p>
           <p>Member since: {{ new Date(user.black_member_since).toLocaleDateString() }}</p>
         </div>

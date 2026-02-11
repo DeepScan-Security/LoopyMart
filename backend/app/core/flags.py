@@ -1,0 +1,78 @@
+"""
+CTF flags loader. Reads challenge flags from backend/flags.yml.
+Supports single-flag and multi-part (joined) flags per challenge.
+"""
+
+import logging
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+logger = logging.getLogger(__name__)
+
+_BACKEND_ROOT = Path(__file__).resolve().parent.parent.parent
+_FLAGS_PATH = _BACKEND_ROOT / "flags.yml"
+_CACHED: dict[str, Any] | None = None
+
+
+def _load_flags_yaml() -> dict[str, Any]:
+    """Load flags.yml; return empty dict if missing or invalid. Cached at module level."""
+    global _CACHED
+    if _CACHED is not None:
+        return _CACHED
+    if not _FLAGS_PATH.exists():
+        logger.warning("Flags file not found: %s (copy from flags.example.yml)", _FLAGS_PATH)
+        _CACHED = {}
+        return _CACHED
+    try:
+        with open(_FLAGS_PATH, "r") as f:
+            data = yaml.safe_load(f) or {}
+        _CACHED = data
+        return _CACHED
+    except Exception as e:
+        logger.exception("Failed to load flags from %s: %s", _FLAGS_PATH, e)
+        _CACHED = {}
+        return _CACHED
+
+
+def _resolve_flag_value(challenge: dict[str, Any]) -> str | None:
+    """
+    Resolve one challenge entry to a single flag string.
+    Prefer 'flag' if present; otherwise use 'parts' joined by 'separator' (default "").
+    """
+    if not isinstance(challenge, dict):
+        return None
+    if "flag" in challenge and challenge["flag"] is not None:
+        val = challenge["flag"]
+        return str(val).strip() if isinstance(val, str) else None
+    if "parts" in challenge and isinstance(challenge["parts"], list):
+        parts = [str(p).strip() for p in challenge["parts"] if p is not None]
+        if not parts:
+            return None
+        sep = challenge.get("separator")
+        if sep is None:
+            sep = ""
+        return str(sep).join(parts)
+    return None
+
+
+def get_flag(challenge_id: str) -> str | None:
+    """
+    Return the flag string for the given challenge_id, or None if missing/invalid.
+    """
+    data = _load_flags_yaml()
+    challenges = data.get("challenges")
+    if not isinstance(challenges, dict):
+        return None
+    entry = challenges.get(challenge_id)
+    return _resolve_flag_value(entry) if entry is not None else None
+
+
+def get_all_challenge_ids() -> list[str]:
+    """Return list of challenge IDs defined in flags.yml."""
+    data = _load_flags_yaml()
+    challenges = data.get("challenges")
+    if not isinstance(challenges, dict):
+        return []
+    return list(challenges.keys())
