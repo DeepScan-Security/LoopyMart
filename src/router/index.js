@@ -9,6 +9,10 @@ const routes = [
   { path: '/orders', name: 'Orders', component: () => import('@/views/OrdersView.vue'), meta: { title: 'Order History', auth: true } },
   { path: '/login', name: 'Login', component: () => import('@/views/LoginView.vue'), meta: { title: 'Login' } },
   { path: '/register', name: 'Register', component: () => import('@/views/RegisterView.vue'), meta: { title: 'Register' } },
+  { path: '/forgot-password', name: 'ForgotPassword', component: () => import('@/views/ForgotPasswordView.vue'), meta: { title: 'Forgot Password' } },
+  { path: '/profile', name: 'Profile', component: () => import('@/views/ProfileView.vue'), meta: { title: 'Profile', auth: true } },
+  { path: '/support', name: 'Support', component: () => import('@/views/ChatView.vue'), meta: { title: 'Support Chat', auth: true } },
+  { path: '/spin', name: 'SpinWheel', component: () => import('@/views/SpinWheelView.vue'), meta: { title: 'Spin & Win', auth: true } },
   { path: '/admin', name: 'Admin', component: () => import('@/views/AdminView.vue'), meta: { title: 'Admin', admin: true } },
 ]
 

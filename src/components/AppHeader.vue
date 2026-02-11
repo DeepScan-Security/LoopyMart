@@ -1,9 +1,12 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { RouterLink, useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()
+const route = useRoute()
 const searchQuery = ref('')
+const showUserMenu = ref(false)
+const userMenuRef = ref(null)
 
 const user = computed(() => {
   try {
@@ -32,6 +35,29 @@ function doSearch() {
   searchQuery.value = ''
 }
 
+function toggleUserMenu() {
+  showUserMenu.value = !showUserMenu.value
+}
+
+function handleClickOutside(event) {
+  if (userMenuRef.value && !userMenuRef.value.contains(event.target)) {
+    showUserMenu.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
+
+// Close menu when route changes
+watch(() => route.path, () => {
+  showUserMenu.value = false
+})
+
 function logout() {
   localStorage.removeItem('token')
   localStorage.removeItem('user')
@@ -57,14 +83,36 @@ function logout() {
       <nav class="nav">
         <RouterLink to="/">Home</RouterLink>
         <RouterLink to="/products">Products</RouterLink>
-        <RouterLink v-if="user" to="/orders">Orders</RouterLink>
         <RouterLink v-if="user?.is_admin === true" to="/admin">Admin</RouterLink>
         <RouterLink v-if="user" to="/cart" class="cart-link">
           Cart <span v-if="cartCount > 0" class="badge">{{ cartCount }}</span>
         </RouterLink>
         <template v-if="user">
-          <span class="user-name">{{ user.full_name }}</span>
-          <button type="button" class="btn btn-outline" @click="logout">Logout</button>
+          <div class="user-menu-wrapper" ref="userMenuRef">
+            <button type="button" class="user-menu-btn" @click.stop="toggleUserMenu">
+              <span class="user-avatar">{{ user.full_name?.charAt(0).toUpperCase() }}</span>
+              <span class="user-name">{{ user.full_name }}</span>
+              <span class="dropdown-arrow">▼</span>
+            </button>
+            <div v-if="showUserMenu" class="user-dropdown">
+              <RouterLink to="/profile">
+                <span class="menu-icon">👤</span> My Profile
+              </RouterLink>
+              <RouterLink to="/orders">
+                <span class="menu-icon">📦</span> Order History
+              </RouterLink>
+              <RouterLink to="/spin">
+                <span class="menu-icon">🎡</span> Spin & Win
+              </RouterLink>
+              <RouterLink to="/support">
+                <span class="menu-icon">💬</span> Support Chat
+              </RouterLink>
+              <div class="menu-divider"></div>
+              <button type="button" @click="logout">
+                <span class="menu-icon">🚪</span> Logout
+              </button>
+            </div>
+          </div>
         </template>
         <template v-else>
           <RouterLink to="/login" class="btn btn-outline">Login</RouterLink>
@@ -175,5 +223,102 @@ function logout() {
 .btn-primary:hover {
   background: #f0f0f0;
   color: #1a5bc7;
+}
+
+/* User Menu Dropdown */
+.user-menu-wrapper {
+  position: relative;
+}
+
+.user-menu-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.user-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  background: #fff;
+  color: #2874f0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.dropdown-arrow {
+  font-size: 0.6rem;
+  opacity: 0.8;
+}
+
+.user-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+  z-index: 1000;
+  overflow: hidden;
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.user-dropdown a,
+.user-dropdown button {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  color: #333;
+  text-decoration: none;
+  font-size: 0.9rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.user-dropdown a:hover,
+.user-dropdown button:hover {
+  background: #f5f5f5;
+}
+
+.menu-icon {
+  font-size: 1rem;
+}
+
+.menu-divider {
+  height: 1px;
+  background: #eee;
+  margin: 0.25rem 0;
 }
 </style>

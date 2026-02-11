@@ -51,6 +51,9 @@ async function submit() {
         <button type="submit" class="btn btn-primary btn-block" :disabled="loading">
           {{ loading ? 'Logging in...' : 'Login' }}
         </button>
+        <p class="forgot-link">
+          <router-link to="/forgot-password">Forgot your password?</router-link>
+        </p>
       </form>
       <p class="footer">
         Don't have an account? <router-link to="/register">Register</router-link>
@@ -87,5 +90,17 @@ async function submit() {
   margin-top: 1rem;
   font-size: 0.95rem;
   text-align: center;
+}
+.forgot-link {
+  margin-top: 0.75rem;
+  text-align: right;
+  font-size: 0.9rem;
+}
+.forgot-link a {
+  color: #2874f0;
+  text-decoration: none;
+}
+.forgot-link a:hover {
+  text-decoration: underline;
 }
 </style>
