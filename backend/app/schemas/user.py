@@ -1,5 +1,5 @@
-from datetime import datetime
-from pydantic import BaseModel, EmailStr
+from datetime import date, datetime
+from pydantic import BaseModel, EmailStr, computed_field
 
 
 class UserCreate(BaseModel):
@@ -25,7 +25,17 @@ class UserResponse(BaseModel):
     wallet_balance: float = 100.0
     is_black_member: bool = False
     black_member_since: datetime | None = None
-    has_spun_wheel: bool = False
+    spin_count_today: int = 0
+    last_spin_date: date | None = None
+
+    @computed_field
+    @property
+    def spins_remaining(self) -> int:
+        """Calculate remaining spins for today (max 5 per day)."""
+        today = date.today()
+        if self.last_spin_date != today:
+            return 5  # New day, full spins available
+        return max(0, 5 - self.spin_count_today)
 
     class Config:
         from_attributes = True

@@ -3,9 +3,9 @@ User model - Stored in PostgreSQL (SQL).
 This is the only model stored in SQL. All other data is in MongoDB.
 """
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Float, String
+from sqlalchemy import Boolean, Date, DateTime, Float, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -38,8 +38,9 @@ class User(Base):
     is_black_member: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     black_member_since: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     
-    # Gamification
-    has_spun_wheel: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Gamification - Daily spin wheel (5 spins per day)
+    spin_count_today: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    last_spin_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     
     # Password reset
     reset_token: Mapped[str | None] = mapped_column(String(255), nullable=True)
