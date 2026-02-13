@@ -18,6 +18,7 @@ export default defineConfig(({ mode }) => {
       vueDevTools(),
     ],
     server: {
+      host: '127.0.0.1',
       proxy: {
         '/api': {
           target: apiTarget,

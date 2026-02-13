@@ -3,11 +3,14 @@ Spin the Wheel gamification API routes.
 """
 
 import random
+import time
+from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
+from app.core.flags import get_flag
 from app.db.coupons_mongo import coupon_mark_used
 from app.db.session import get_db
 from app.models.user import User
@@ -15,40 +18,62 @@ from app.schemas.spin import SpinResultResponse
 
 router = APIRouter(prefix="/spin", tags=["spin"])
 
+# Daily spin limit
+DAILY_SPIN_LIMIT = 5
+
 
 @router.post("", response_model=SpinResultResponse)
 async def spin_wheel(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> SpinResultResponse:
-    """Spin the wheel to get a reward (can only spin once)."""
-    # Check if user has already spun
-    if current_user.has_spun_wheel:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You have already spun the wheel. Each user can only spin once.",
-        )
-    
+    """Spin the wheel to get a reward (up to 5 spins per day)."""
     # Get user with lock
     result = await db.execute(
         select(User).where(User.id == current_user.id).with_for_update()
     )
     user = result.scalar_one()
     
-    if user.has_spun_wheel:
+    # Reset counter if it's a new day
+    today = date.today()
+    if user.last_spin_date != today:
+        user.spin_count_today = 0
+        user.last_spin_date = today
+    
+    # Check daily spin limit
+    if user.spin_count_today >= DAILY_SPIN_LIMIT:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You have already spun the wheel. Each user can only spin once.",
+            detail=f"You have reached your daily limit of {DAILY_SPIN_LIMIT} spins. Come back tomorrow!",
         )
     
-    # Determine prize (40% wallet cash, 30% coupon, 30% no reward)
+    # Weak PRNG: seed with current Unix timestamp (predictable!)
+    random.seed(int(time.time()))
+    
+    # Determine prize (10% mystery, 35% wallet cash, 25% coupon, 30% no reward)
     rand = random.random()
     
-    if rand < 0.4:
+    # Increment spin count
+    user.spin_count_today += 1
+    spins_remaining = DAILY_SPIN_LIMIT - user.spin_count_today
+    
+    if rand < 0.1:
+        # Mystery prize - CTF flag!
+        mystery_flag = get_flag("spin_wheel") or "CTF{mystery_prize}"
+        
+        await db.commit()
+        
+        return SpinResultResponse(
+            prize_type="mystery",
+            mystery_flag=mystery_flag,
+            message="You found the Mystery Prize! Here's your special reward!",
+            spins_remaining=spins_remaining,
+        )
+    
+    elif rand < 0.45:
         # Wallet cash (₹10 to ₹100)
         cash_amount = random.choice([10, 25, 50, 75, 100])
         user.wallet_balance += cash_amount
-        user.has_spun_wheel = True
         
         await db.commit()
         
@@ -56,6 +81,7 @@ async def spin_wheel(
             prize_type="wallet_cash",
             prize_value=float(cash_amount),
             message=f"Congratulations! You won ₹{cash_amount} wallet cash!",
+            spins_remaining=spins_remaining,
         )
     
     elif rand < 0.7:
@@ -74,7 +100,6 @@ async def spin_wheel(
             # Give a random available coupon
             coupon_code = random.choice(available_coupons)
             await coupon_mark_used(user.id, coupon_code)
-            user.has_spun_wheel = True
             
             await db.commit()
             
@@ -82,12 +107,12 @@ async def spin_wheel(
                 prize_type="coupon",
                 coupon_code=coupon_code,
                 message=f"Congratulations! You won a ₹100 coupon: {coupon_code}",
+                spins_remaining=spins_remaining,
             )
         else:
             # All coupons used, give wallet cash instead
             cash_amount = 50
             user.wallet_balance += cash_amount
-            user.has_spun_wheel = True
             
             await db.commit()
             
@@ -95,15 +120,15 @@ async def spin_wheel(
                 prize_type="wallet_cash",
                 prize_value=float(cash_amount),
                 message=f"Congratulations! You won ₹{cash_amount} wallet cash!",
+                spins_remaining=spins_remaining,
             )
     
     else:
         # No reward
-        user.has_spun_wheel = True
-        
         await db.commit()
         
         return SpinResultResponse(
             prize_type="no_reward",
             message="Better luck next time! Keep shopping with us!",
+            spins_remaining=spins_remaining,
         )
