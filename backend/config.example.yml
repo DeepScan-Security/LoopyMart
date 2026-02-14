@@ -1,0 +1,26 @@
+# Configuration file template
+# Copy this to config.local.yml and adjust values for your environment
+
+app:
+  name: "Clipkart Clone API"
+  debug: false
+  secret_key: "your-secret-key-change-in-production"
+  algorithm: "HS256"
+  access_token_expire_minutes: 10080  # 7 days
+
+database:
+  # SQLite (default) or PostgreSQL for users, categories, cart, orders
+  # For PostgreSQL: postgresql+asyncpg://user:password@localhost:5432/flipkart_clone
+  url: "sqlite+aiosqlite:///./app.db"
+
+mongodb:
+  # MongoDB connection string for products collection
+  url: "mongodb://localhost:27017/"
+  db_name: "flipkart_clone"
+
+# Razorpay payment gateway (optional)
+# Get keys from https://dashboard.razorpay.com/
+# If not set, checkout uses "Place Order" without online payment.
+razorpay:
+  key_id: ""
+  key_secret: ""
