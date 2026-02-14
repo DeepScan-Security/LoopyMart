@@ -6,7 +6,9 @@ const router = useRouter()
 const route = useRoute()
 const searchQuery = ref('')
 const showUserMenu = ref(false)
+const showMoreMenu = ref(false)
 const userMenuRef = ref(null)
+const moreMenuRef = ref(null)
 
 const user = computed(() => {
   try {
@@ -37,11 +39,20 @@ function doSearch() {
 
 function toggleUserMenu() {
   showUserMenu.value = !showUserMenu.value
+  showMoreMenu.value = false
+}
+
+function toggleMoreMenu() {
+  showMoreMenu.value = !showMoreMenu.value
+  showUserMenu.value = false
 }
 
 function handleClickOutside(event) {
   if (userMenuRef.value && !userMenuRef.value.contains(event.target)) {
     showUserMenu.value = false
+  }
+  if (moreMenuRef.value && !moreMenuRef.value.contains(event.target)) {
+    showMoreMenu.value = false
   }
 }
 
@@ -53,9 +64,9 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
 })
 
-// Close menu when route changes
 watch(() => route.path, () => {
   showUserMenu.value = false
+  showMoreMenu.value = false
 })
 
 function logout() {
@@ -67,258 +78,288 @@ function logout() {
 </script>
 
 <template>
-  <header class="header">
-    <div class="header-inner">
-      <RouterLink to="/" class="logo">Clipkart</RouterLink>
-      <div class="header-search">
-        <input
-          v-model="searchQuery"
-          type="search"
-          placeholder="Search products..."
-          class="header-search-input"
-          @keyup.enter="doSearch"
-        />
-        <button type="button" class="header-search-btn" @click="doSearch">🔍</button>
-      </div>
-      <nav class="nav">
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/products">Products</RouterLink>
-        <RouterLink v-if="user?.is_admin === true" to="/admin">Admin</RouterLink>
-        <RouterLink v-if="user" to="/cart" class="cart-link">
-          Cart <span v-if="cartCount > 0" class="badge">{{ cartCount }}</span>
+  <header class="bg-flipkart-blue shadow-header sticky top-0 z-50">
+    <div class="max-w-container mx-auto px-4">
+      <!-- Main Header Row -->
+      <div class="flex items-center gap-4 py-2.5">
+        <!-- Logo Section -->
+        <RouterLink to="/" class="flex flex-col items-start flex-shrink-0">
+          <span class="text-white text-xl font-bold italic tracking-tight">Clipkart</span>
+          <span class="text-[10px] text-white/70 italic -mt-0.5">
+            Explore <span class="text-flipkart-yellow">Plus</span>
+            <svg width="10" height="10" class="inline w-2.5 h-2.5 ml-0.5" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 0l2.5 5.5L16 6.5l-4 4 1 5.5L8 13l-5 3 1-5.5-4-4 5.5-1z"/>
+            </svg>
+          </span>
         </RouterLink>
-        <template v-if="user">
-          <div class="user-menu-wrapper" ref="userMenuRef">
-            <button type="button" class="user-menu-btn" @click.stop="toggleUserMenu">
-              <span class="user-avatar">{{ user.full_name?.charAt(0).toUpperCase() }}</span>
-              <span class="user-name">{{ user.full_name }}</span>
-              <span class="dropdown-arrow">▼</span>
+
+        <!-- Search Bar -->
+        <div class="flex-1 max-w-2xl">
+          <div class="relative flex items-center bg-white rounded-sm">
+            <input
+              v-model="searchQuery"
+              type="search"
+              placeholder="Search for products, brands and more"
+              class="w-full py-2.5 pl-4 pr-12 text-sm text-text-primary placeholder:text-text-hint
+                     rounded-sm border-none outline-none"
+              @keyup.enter="doSearch"
+            />
+            <button
+              type="button"
+              class="absolute right-0 h-full px-4 text-flipkart-blue hover:bg-gray-50
+                     transition-colors rounded-r-sm"
+              @click="doSearch"
+            >
+              <svg width="20" height="20" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
             </button>
-            <div v-if="showUserMenu" class="user-dropdown">
-              <RouterLink to="/profile">
-                <span class="menu-icon">👤</span> My Profile
-              </RouterLink>
-              <RouterLink to="/orders">
-                <span class="menu-icon">📦</span> Order History
-              </RouterLink>
-              <RouterLink to="/spin">
-                <span class="menu-icon">🎡</span> Spin & Win
-              </RouterLink>
-              <RouterLink to="/support">
-                <span class="menu-icon">💬</span> Support Chat
-              </RouterLink>
-              <div class="menu-divider"></div>
-              <button type="button" @click="logout">
-                <span class="menu-icon">🚪</span> Logout
-              </button>
+          </div>
+        </div>
+
+        <!-- Navigation Items -->
+        <nav class="flex items-center gap-1">
+          <!-- Login/User Dropdown -->
+          <div class="relative" ref="userMenuRef">
+            <button
+              type="button"
+              class="flex items-center gap-2 px-4 py-2 text-white font-medium text-sm
+                     hover:bg-white/10 rounded-sm transition-colors"
+              @click.stop="toggleUserMenu"
+            >
+              <template v-if="user">
+                <div class="w-6 h-6 bg-white text-flipkart-blue rounded-full flex items-center 
+                            justify-center text-xs font-bold">
+                  {{ user.full_name?.charAt(0).toUpperCase() }}
+                </div>
+                <span class="hidden md:inline max-w-[100px] truncate">{{ user.full_name }}</span>
+              </template>
+              <template v-else>
+                <svg width="20" height="20" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+                <span>Login</span>
+              </template>
+              <svg width="12" height="12" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/>
+              </svg>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div
+              v-if="showUserMenu"
+              class="absolute top-full right-0 mt-1 w-56 bg-white rounded-sm shadow-dropdown 
+                     animate-fadeIn z-50"
+            >
+              <template v-if="!user">
+                <div class="p-4 border-b border-flipkart-gray-dark">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium text-text-primary">New customer?</span>
+                    <RouterLink to="/register" class="text-flipkart-blue text-sm font-medium">
+                      Sign Up
+                    </RouterLink>
+                  </div>
+                  <RouterLink
+                    to="/login"
+                    class="block w-full py-2 text-center bg-flipkart-blue text-white 
+                           rounded-sm text-sm font-medium hover:bg-flipkart-blue-dark"
+                  >
+                    Login
+                  </RouterLink>
+                </div>
+              </template>
+
+              <div class="py-2">
+                <template v-if="user">
+                  <RouterLink
+                    to="/profile"
+                    class="flex items-center gap-3 px-4 py-2.5 text-sm text-text-primary 
+                           hover:bg-flipkart-gray transition-colors"
+                  >
+                    <svg width="16" height="16" class="w-4 h-4 text-flipkart-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    </svg>
+                    My Profile
+                  </RouterLink>
+                </template>
+
+                <RouterLink
+                  to="/orders"
+                  class="flex items-center gap-3 px-4 py-2.5 text-sm text-text-primary 
+                         hover:bg-flipkart-gray transition-colors"
+                >
+                  <svg width="16" height="16" class="w-4 h-4 text-flipkart-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                  </svg>
+                  Orders
+                </RouterLink>
+
+                <RouterLink
+                  to="/spin"
+                  class="flex items-center gap-3 px-4 py-2.5 text-sm text-text-primary 
+                         hover:bg-flipkart-gray transition-colors"
+                >
+                  <svg width="16" height="16" class="w-4 h-4 text-flipkart-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
+                  </svg>
+                  Spin & Win
+                </RouterLink>
+
+                <RouterLink
+                  to="/support"
+                  class="flex items-center gap-3 px-4 py-2.5 text-sm text-text-primary 
+                         hover:bg-flipkart-gray transition-colors"
+                >
+                  <svg width="16" height="16" class="w-4 h-4 text-flipkart-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                  </svg>
+                  Support Chat
+                </RouterLink>
+
+                <template v-if="user?.is_admin">
+                  <div class="border-t border-flipkart-gray-dark my-1"></div>
+                  <RouterLink
+                    to="/admin"
+                    class="flex items-center gap-3 px-4 py-2.5 text-sm text-text-primary 
+                           hover:bg-flipkart-gray transition-colors"
+                  >
+                    <svg width="16" height="16" class="w-4 h-4 text-flipkart-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    Admin Dashboard
+                  </RouterLink>
+                </template>
+
+                <template v-if="user">
+                  <div class="border-t border-flipkart-gray-dark my-1"></div>
+                  <button
+                    type="button"
+                    class="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-text-primary 
+                           hover:bg-flipkart-gray transition-colors text-left"
+                    @click="logout"
+                  >
+                    <svg width="16" height="16" class="w-4 h-4 text-flipkart-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                    </svg>
+                    Logout
+                  </button>
+                </template>
+              </div>
             </div>
           </div>
-        </template>
-        <template v-else>
-          <RouterLink to="/login" class="btn btn-outline">Login</RouterLink>
-          <RouterLink to="/register" class="btn btn-outline">Register</RouterLink>
-        </template>
-      </nav>
+
+          <!-- Cart -->
+          <RouterLink
+            to="/cart"
+            class="flex items-center gap-2 px-4 py-2 text-white font-medium text-sm
+                   hover:bg-white/10 rounded-sm transition-colors relative"
+          >
+            <div class="relative">
+              <svg width="20" height="20" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+              </svg>
+              <span
+                v-if="cartCount > 0"
+                class="absolute -top-1.5 -right-1.5 w-4 h-4 bg-flipkart-yellow text-flipkart-blue 
+                       text-[10px] font-bold rounded-full flex items-center justify-center"
+              >
+                {{ cartCount > 9 ? '9+' : cartCount }}
+              </span>
+            </div>
+            <span class="hidden md:inline">Cart</span>
+          </RouterLink>
+
+          <!-- Become a Seller -->
+          <a
+            href="#"
+            class="hidden lg:flex items-center gap-2 px-4 py-2 text-white font-medium text-sm
+                   hover:bg-white/10 rounded-sm transition-colors"
+          >
+            <svg width="20" height="20" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+            <span>Become a Seller</span>
+          </a>
+
+          <!-- More Dropdown -->
+          <div class="relative" ref="moreMenuRef">
+            <button
+              type="button"
+              class="flex items-center gap-1 px-3 py-2 text-white font-medium text-sm
+                     hover:bg-white/10 rounded-sm transition-colors"
+              @click.stop="toggleMoreMenu"
+            >
+              <svg width="20" height="20" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
+              </svg>
+            </button>
+
+            <div
+              v-if="showMoreMenu"
+              class="absolute top-full right-0 mt-1 w-48 bg-white rounded-sm shadow-dropdown 
+                     animate-fadeIn z-50"
+            >
+              <div class="py-2">
+                <a
+                  href="#"
+                  class="flex items-center gap-3 px-4 py-2.5 text-sm text-text-primary 
+                         hover:bg-flipkart-gray transition-colors"
+                >
+                  <svg width="16" height="16" class="w-4 h-4 text-flipkart-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                  </svg>
+                  Notification Preferences
+                </a>
+                <a
+                  href="#"
+                  class="flex items-center gap-3 px-4 py-2.5 text-sm text-text-primary 
+                         hover:bg-flipkart-gray transition-colors"
+                >
+                  <svg width="16" height="16" class="w-4 h-4 text-flipkart-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  24x7 Customer Care
+                </a>
+                <a
+                  href="#"
+                  class="flex items-center gap-3 px-4 py-2.5 text-sm text-text-primary 
+                         hover:bg-flipkart-gray transition-colors"
+                >
+                  <svg width="16" height="16" class="w-4 h-4 text-flipkart-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/>
+                  </svg>
+                  Advertise
+                </a>
+                <a
+                  href="#"
+                  class="flex items-center gap-3 px-4 py-2.5 text-sm text-text-primary 
+                         hover:bg-flipkart-gray transition-colors"
+                >
+                  <svg width="16" height="16" class="w-4 h-4 text-flipkart-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                  </svg>
+                  Download App
+                </a>
+              </div>
+            </div>
+          </div>
+        </nav>
+      </div>
     </div>
   </header>
 </template>
-
-<style scoped>
-.header {
-  background: #2874f0;
-  color: #fff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-}
-.header-inner {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 0.75rem 1.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-.logo {
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: #fff;
-  text-decoration: none;
-}
-.header-search {
-  display: flex;
-  flex: 1;
-  max-width: 400px;
-  margin: 0 1rem;
-}
-.header-search-input {
-  flex: 1;
-  padding: 0.5rem 0.75rem;
-  border: none;
-  border-radius: 4px 0 0 4px;
-  font-size: 0.9rem;
-}
-.header-search-btn {
-  padding: 0.5rem 0.75rem;
-  background: #fff;
-  border: none;
-  border-radius: 0 4px 4px 0;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-.header-search-btn:hover {
-  background: #f0f0f0;
-}
-@media (max-width: 600px) {
-  .header-search {
-    display: none;
-  }
-}
-.nav {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  flex-wrap: wrap;
-}
-.nav a {
-  color: rgba(255, 255, 255, 0.95);
-  text-decoration: none;
-  font-weight: 500;
-}
-.nav a.router-link-active {
-  text-decoration: underline;
-}
-.cart-link {
-  position: relative;
-}
-.badge {
-  background: #ff6161;
-  color: #fff;
-  font-size: 0.7rem;
-  padding: 0.1em 0.4em;
-  border-radius: 10px;
-  margin-left: 0.2em;
-}
-.user-name {
-  font-size: 0.9rem;
-  opacity: 0.95;
-}
-.btn {
-  padding: 0.4rem 0.9rem;
-  border-radius: 4px;
-  font-weight: 500;
-  text-decoration: none;
-  border: none;
-  cursor: pointer;
-  font-size: 0.95rem;
-}
-.btn-outline {
-  background: transparent;
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.8);
-}
-.btn-primary {
-  background: #fff;
-  color: #2874f0;
-}
-.btn-primary:hover {
-  background: #f0f0f0;
-  color: #1a5bc7;
-}
-
-/* User Menu Dropdown */
-.user-menu-wrapper {
-  position: relative;
-}
-
-.user-menu-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.75rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 4px;
-  color: #fff;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: background 0.2s;
-}
-
-.user-menu-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.user-avatar {
-  width: 28px;
-  height: 28px;
-  background: #fff;
-  color: #2874f0;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 0.85rem;
-}
-
-.dropdown-arrow {
-  font-size: 0.6rem;
-  opacity: 0.8;
-}
-
-.user-dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  min-width: 200px;
-  z-index: 1000;
-  overflow: hidden;
-  animation: fadeIn 0.15s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.user-dropdown a,
-.user-dropdown button {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  width: 100%;
-  padding: 0.75rem 1rem;
-  color: #333;
-  text-decoration: none;
-  font-size: 0.9rem;
-  border: none;
-  background: none;
-  cursor: pointer;
-  text-align: left;
-  transition: background 0.15s;
-}
-
-.user-dropdown a:hover,
-.user-dropdown button:hover {
-  background: #f5f5f5;
-}
-
-.menu-icon {
-  font-size: 1rem;
-}
-
-.menu-divider {
-  height: 1px;
-  background: #eee;
-  margin: 0.25rem 0;
-}
-</style>

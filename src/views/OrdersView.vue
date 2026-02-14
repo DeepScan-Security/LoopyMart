@@ -1,10 +1,19 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { orders } from '@/api'
 
 const list = ref([])
 const loading = ref(true)
+const filter = ref('all')
+
+const statusFilters = [
+  { id: 'all', label: 'All Orders' },
+  { id: 'pending', label: 'Pending' },
+  { id: 'processing', label: 'Processing' },
+  { id: 'shipped', label: 'Shipped' },
+  { id: 'delivered', label: 'Delivered' },
+]
 
 onMounted(async () => {
   try {
@@ -16,86 +25,224 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+const filteredOrders = computed(() => {
+  if (filter.value === 'all') return list.value
+  return list.value.filter(order => order.status.toLowerCase() === filter.value)
+})
+
+function getStatusColor(status) {
+  switch (status.toLowerCase()) {
+    case 'delivered': return 'bg-flipkart-green'
+    case 'shipped': return 'bg-flipkart-blue'
+    case 'processing': return 'bg-flipkart-orange'
+    case 'pending': return 'bg-yellow-500'
+    case 'cancelled': return 'bg-red-500'
+    default: return 'bg-text-secondary'
+  }
+}
+
+function imageUrl(url) {
+  if (!url) return '/dummy-product.png'
+  if (url.startsWith('http') || url.startsWith('//')) return url
+  const staticUrl = import.meta.env.VITE_STATIC_URL || ''
+  if (url.startsWith('/static/')) return staticUrl + url
+  return url
+}
 </script>
 
 <template>
-  <div class="orders-page">
-    <h1>Order History</h1>
-    <div v-if="loading" class="loading">Loading...</div>
-    <div v-else-if="!list.length" class="empty">
-      <p>You have no orders yet.</p>
-      <RouterLink to="/products" class="btn btn-primary">Shop now</RouterLink>
-    </div>
-    <div v-else class="order-list">
-      <div v-for="order in list" :key="order.id" class="order-card card">
-        <div class="order-header">
-          <span class="order-id">Order #{{ order.id }}</span>
-          <span class="order-status">{{ order.status }}</span>
-          <span class="order-total">₹{{ order.total.toLocaleString('en-IN') }}</span>
+  <div class="min-h-screen bg-flipkart-gray py-4">
+    <div class="max-w-container mx-auto px-4">
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-4">
+        <h1 class="text-xl font-medium text-text-primary">My Orders</h1>
+        <RouterLink to="/products" class="text-flipkart-blue text-sm hover:underline">
+          Continue Shopping
+        </RouterLink>
+      </div>
+
+      <!-- Loading -->
+      <div v-if="loading" class="bg-white shadow-card rounded-sm p-12 text-center">
+        <div class="inline-block w-8 h-8 border-4 border-flipkart-blue border-t-transparent 
+                    rounded-full animate-spin"></div>
+        <p class="mt-4 text-text-secondary">Loading orders...</p>
+      </div>
+
+      <!-- Empty State -->
+      <div v-else-if="!list.length" class="bg-white shadow-card rounded-sm p-12 text-center">
+        <svg width="96" height="96" class="w-24 h-24 mx-auto text-text-hint mb-4" fill="none" stroke="currentColor" 
+             viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" 
+                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+        </svg>
+        <h2 class="text-xl font-medium text-text-primary mb-2">No orders yet</h2>
+        <p class="text-text-secondary mb-6">Looks like you haven't made any orders.</p>
+        <RouterLink to="/products" class="btn btn-primary btn-lg">
+          Start Shopping
+        </RouterLink>
+      </div>
+
+      <!-- Orders Content -->
+      <div v-else class="space-y-4">
+        <!-- Filters -->
+        <div class="bg-white shadow-card rounded-sm p-4 flex items-center gap-2 overflow-x-auto 
+                    scrollbar-hide">
+          <button
+            v-for="f in statusFilters"
+            :key="f.id"
+            @click="filter = f.id"
+            :class="[
+              'px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors',
+              filter === f.id 
+                ? 'bg-flipkart-blue text-white' 
+                : 'bg-flipkart-gray text-text-primary hover:bg-flipkart-gray-dark'
+            ]"
+          >
+            {{ f.label }}
+          </button>
         </div>
-        <p class="order-address">{{ order.shipping_address }}</p>
-        <ul class="order-items">
-          <li v-for="item in order.items" :key="item.id">
-            {{ item.product_name }} × {{ item.quantity }} — ₹{{ (item.price_at_order * item.quantity).toLocaleString('en-IN') }}
-          </li>
-        </ul>
+
+        <!-- Orders List -->
+        <div v-if="filteredOrders.length" class="space-y-4">
+          <div 
+            v-for="order in filteredOrders" 
+            :key="order.id"
+            class="bg-white shadow-card rounded-sm overflow-hidden"
+          >
+            <!-- Order Header -->
+            <div class="p-4 bg-flipkart-gray border-b border-flipkart-gray-dark 
+                        flex flex-wrap items-center gap-4">
+              <div>
+                <p class="text-xs text-text-secondary">ORDER PLACED</p>
+                <p class="text-sm font-medium text-text-primary">
+                  {{ new Date(order.created_at).toLocaleDateString('en-IN', {
+                    year: 'numeric', month: 'long', day: 'numeric'
+                  }) }}
+                </p>
+              </div>
+              <div>
+                <p class="text-xs text-text-secondary">TOTAL</p>
+                <p class="text-sm font-medium text-text-primary">
+                  ₹{{ order.total.toLocaleString('en-IN') }}
+                </p>
+              </div>
+              <div>
+                <p class="text-xs text-text-secondary">SHIP TO</p>
+                <p class="text-sm font-medium text-text-primary line-clamp-1 max-w-[200px]">
+                  {{ order.shipping_address }}
+                </p>
+              </div>
+              <div class="ml-auto flex items-center gap-4">
+                <span :class="[
+                  'px-3 py-1 rounded-full text-xs font-medium text-white uppercase',
+                  getStatusColor(order.status)
+                ]">
+                  {{ order.status }}
+                </span>
+                <span class="text-xs text-text-secondary">
+                  Order #{{ order.id.slice(0, 8) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Order Items -->
+            <div class="divide-y divide-flipkart-gray-dark">
+              <div 
+                v-for="item in order.items" 
+                :key="item.id"
+                class="p-4 flex gap-4"
+              >
+                <!-- Product Image -->
+                <RouterLink 
+                  :to="{ name: 'ProductDetail', params: { id: item.product_id } }"
+                  class="w-20 h-20 flex-shrink-0 border border-flipkart-gray-dark rounded-sm p-1"
+                >
+                  <img
+                    :src="imageUrl(item.product_image_url)"
+                    :alt="item.product_name"
+                    class="w-full h-full object-contain"
+                  />
+                </RouterLink>
+
+                <!-- Product Details -->
+                <div class="flex-1 min-w-0">
+                  <RouterLink 
+                    :to="{ name: 'ProductDetail', params: { id: item.product_id } }"
+                    class="text-text-primary hover:text-flipkart-blue transition-colors"
+                  >
+                    <h3 class="font-medium line-clamp-1">{{ item.product_name }}</h3>
+                  </RouterLink>
+                  <p class="text-sm text-text-secondary mt-1">
+                    Qty: {{ item.quantity }} | ₹{{ item.price_at_order.toLocaleString('en-IN') }} each
+                  </p>
+                  <p class="text-sm font-medium text-text-primary mt-1">
+                    ₹{{ (item.price_at_order * item.quantity).toLocaleString('en-IN') }}
+                  </p>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex flex-col gap-2">
+                  <RouterLink 
+                    :to="{ name: 'ProductDetail', params: { id: item.product_id } }"
+                    class="btn btn-sm"
+                  >
+                    View Product
+                  </RouterLink>
+                  <button 
+                    v-if="order.status.toLowerCase() === 'delivered'"
+                    class="btn btn-sm btn-secondary"
+                  >
+                    Write Review
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Order Footer -->
+            <div class="p-4 bg-flipkart-gray border-t border-flipkart-gray-dark 
+                        flex items-center justify-between">
+              <div class="text-sm">
+                <span v-if="order.status.toLowerCase() === 'delivered'" class="text-flipkart-green">
+                  Delivered on {{ new Date(order.updated_at).toLocaleDateString('en-IN') }}
+                </span>
+                <span v-else-if="order.status.toLowerCase() === 'shipped'" class="text-flipkart-blue">
+                  Expected delivery by {{ new Date(Date.now() + 2*24*60*60*1000).toLocaleDateString('en-IN') }}
+                </span>
+                <span v-else class="text-text-secondary">
+                  Order is being processed
+                </span>
+              </div>
+              <div class="flex gap-2">
+                <button class="text-sm text-flipkart-blue hover:underline">
+                  Track Order
+                </button>
+                <span class="text-text-hint">|</span>
+                <button class="text-sm text-flipkart-blue hover:underline">
+                  Need Help?
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- No Results -->
+        <div v-else class="bg-white shadow-card rounded-sm p-12 text-center">
+          <p class="text-text-secondary">No orders found with status "{{ filter }}"</p>
+          <button @click="filter = 'all'" class="btn btn-primary mt-4">
+            View All Orders
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.orders-page h1 {
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
-}
-.loading, .empty {
-  padding: 2rem;
-  text-align: center;
-}
-.empty .btn {
-  margin-top: 1rem;
-}
-.order-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-.order-card {
-  padding: 1.25rem;
-}
-.order-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.5rem;
-}
-.order-id {
-  font-weight: 600;
-}
-.order-status {
-  text-transform: capitalize;
-  font-size: 0.9rem;
-  color: #666;
-}
-.order-total {
-  margin-left: auto;
-  font-weight: 700;
-  color: #2874f0;
-}
-.order-address {
-  font-size: 0.9rem;
-  color: #555;
-  margin-bottom: 0.75rem;
-}
-.order-items {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  font-size: 0.9rem;
-}
-.order-items li {
-  padding: 0.2rem 0;
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 </style>
