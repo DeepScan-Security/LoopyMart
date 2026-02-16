@@ -32,6 +32,7 @@ class OrderItemResponse(BaseModel):
     product_name: str
     quantity: int
     price_at_order: float
+    product_image_url: str | None = None
 
     class Config:
         from_attributes = True

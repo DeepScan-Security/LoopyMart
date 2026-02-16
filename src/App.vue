@@ -2,31 +2,22 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import AppHeader from '@/components/AppHeader.vue'
+import CategoryNav from '@/components/CategoryNav.vue'
+import AppFooter from '@/components/AppFooter.vue'
 
 const route = useRoute()
 const showHeader = computed(() => !route.meta.hideHeader)
+const showCategoryNav = computed(() => !route.meta.hideHeader && !route.meta.hideCategoryNav)
+const showFooter = computed(() => !route.meta.hideFooter)
 </script>
 
 <template>
-  <div class="app">
+  <div class="app min-h-screen flex flex-col bg-flipkart-gray">
     <AppHeader v-if="showHeader" />
-    <main class="main">
+    <CategoryNav v-if="showCategoryNav" />
+    <main class="flex-1">
       <RouterView />
     </main>
+    <AppFooter v-if="showFooter" />
   </div>
 </template>
-
-<style scoped>
-.app {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-.main {
-  flex: 1;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 1rem 1.5rem;
-  width: 100%;
-}
-</style>
