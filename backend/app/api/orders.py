@@ -30,6 +30,7 @@ def _order_to_response(order: dict) -> OrderResponse:
             product_name=item["product_name"],
             quantity=item["quantity"],
             price_at_order=item["price_at_order"],
+            product_image_url=item.get("product_image_url"),
         )
         for item in order.get("items", [])
     ]
@@ -101,6 +102,7 @@ async def create_payment(
             "product_name": product["name"],
             "quantity": ci["quantity"],
             "price_at_order": product["price"],
+            "product_image_url": product.get("image_url"),
         })
 
     # Create Razorpay order first
@@ -218,6 +220,7 @@ async def create_order(
             "product_name": product["name"],
             "quantity": ci["quantity"],
             "price_at_order": product["price"],
+            "product_image_url": product.get("image_url"),
         })
 
     # Create order in MongoDB

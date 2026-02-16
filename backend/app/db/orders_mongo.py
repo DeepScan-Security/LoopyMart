@@ -12,7 +12,8 @@ Orders are stored in MongoDB with the following schema:
             "product_id": str,
             "product_name": str,
             "quantity": int,
-            "price_at_order": float
+            "price_at_order": float,
+            "product_image_url": str | None
         }
     ],
     "razorpay_order_id": str | None,
