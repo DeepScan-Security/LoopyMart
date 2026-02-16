@@ -45,6 +45,13 @@ async def product_get(product_id: str) -> dict | None:
     return _doc_to_product(doc) if doc else None
 
 
+async def product_get_by_name(name: str) -> dict | None:
+    """Get a product by its name (case-insensitive exact match)."""
+    db = get_mongo_db()
+    doc = await db.products.find_one({"name": {"$regex": f"^{re.escape(name)}$", "$options": "i"}})
+    return _doc_to_product(doc) if doc else None
+
+
 async def product_list(
     category_id: str | None = None,
     search: str | None = None,
