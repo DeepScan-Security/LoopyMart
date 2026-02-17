@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, RouterLink } from 'vue-router'
 import { cart, orders } from '@/api'
 import client from '@/api/client'
 
@@ -10,6 +10,9 @@ const shippingAddress = ref('')
 const loading = ref(true)
 const submitting = ref(false)
 const error = ref('')
+
+// Checkout steps
+const currentStep = ref(1) // 1: Address, 2: Payment, 3: Review
 
 // Payment state
 const paymentMethod = ref('wallet')
@@ -40,7 +43,21 @@ const subtotal = computed(() =>
   items.value.reduce((s, i) => s + i.product_price * i.quantity, 0)
 )
 
-const total = computed(() => Math.max(0, subtotal.value - couponDiscount.value))
+const totalItems = computed(() =>
+  items.value.reduce((s, i) => s + i.quantity, 0)
+)
+
+const discount = computed(() => Math.round(subtotal.value * 0.1) + couponDiscount.value)
+const deliveryCharges = computed(() => subtotal.value > 499 ? 0 : 40)
+const total = computed(() => Math.max(0, subtotal.value - discount.value + deliveryCharges.value))
+
+function imageUrl(url) {
+  if (!url) return '/dummy-product.png'
+  if (url.startsWith('http') || url.startsWith('//')) return url
+  const staticUrl = import.meta.env.VITE_STATIC_URL || ''
+  if (url.startsWith('/static/')) return staticUrl + url
+  return url
+}
 
 async function applyCoupon(coupon) {
   if (coupon.is_used) {
@@ -68,6 +85,20 @@ function removeCoupon() {
   couponDiscount.value = 0
 }
 
+function proceedToPayment() {
+  if (!shippingAddress.value.trim()) {
+    error.value = 'Please enter shipping address'
+    return
+  }
+  error.value = ''
+  currentStep.value = 2
+}
+
+function proceedToReview() {
+  error.value = ''
+  currentStep.value = 3
+}
+
 async function placeOrder() {
   if (!shippingAddress.value.trim()) {
     error.value = 'Please enter shipping address'
@@ -83,11 +114,9 @@ async function placeOrder() {
   error.value = ''
   
   try {
-    // Create order first (without payment)
     const orderRes = await orders.create({ shipping_address: shippingAddress.value.trim() })
     const orderId = orderRes.data.id
     
-    // Process dummy payment
     const paymentRes = await client.post('/payments/dummy-pay', {
       order_id: orderId,
       amount: total.value,
@@ -110,108 +139,352 @@ async function placeOrder() {
 </script>
 
 <template>
-  <div class="checkout-page">
-    <h1>Checkout</h1>
-    <div v-if="loading" class="loading">Loading...</div>
-    <div v-else-if="!items.length" class="empty">
-      <p>Your cart is empty.</p>
-      <router-link to="/products" class="btn btn-primary">Shop now</router-link>
-    </div>
-    <div v-else class="checkout-container">
-      <form class="checkout-form" @submit.prevent="placeOrder">
-        <!-- Shipping Address -->
-        <div class="form-group">
-          <label for="address">Shipping Address</label>
-          <textarea
-            id="address"
-            v-model="shippingAddress"
-            rows="3"
-            placeholder="Full address, city, state, PIN"
-            required
-          />
-        </div>
+  <div class="min-h-screen bg-flipkart-gray py-4">
+    <div class="max-w-container mx-auto px-4">
+      <!-- Loading State -->
+      <div v-if="loading" class="bg-white shadow-card rounded-sm p-12 text-center">
+        <div class="inline-block w-8 h-8 border-4 border-flipkart-blue border-t-transparent 
+                    rounded-full animate-spin"></div>
+        <p class="mt-4 text-text-secondary">Loading checkout...</p>
+      </div>
 
-        <!-- Payment Method -->
-        <div class="form-group">
-          <label>Payment Method</label>
-          <div class="payment-methods">
-            <label class="payment-option">
-              <input type="radio" v-model="paymentMethod" value="wallet" />
-              <span>Wallet (₹{{ walletBalance.toLocaleString('en-IN') }})</span>
-            </label>
-            <label class="payment-option">
-              <input type="radio" v-model="paymentMethod" value="card" />
-              <span>Credit/Debit Card</span>
-            </label>
-            <label class="payment-option">
-              <input type="radio" v-model="paymentMethod" value="upi" />
-              <span>UPI</span>
-            </label>
-            <label class="payment-option">
-              <input type="radio" v-model="paymentMethod" value="cod" />
-              <span>Cash on Delivery</span>
-            </label>
-          </div>
-        </div>
+      <!-- Empty Cart -->
+      <div v-else-if="!items.length" class="bg-white shadow-card rounded-sm p-12 text-center">
+        <svg width="96" height="96" class="w-24 h-24 mx-auto text-text-hint mb-4" fill="none" stroke="currentColor" 
+             viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" 
+                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+        </svg>
+        <h2 class="text-xl font-medium text-text-primary mb-2">Your cart is empty!</h2>
+        <p class="text-text-secondary mb-6">Add items to proceed with checkout.</p>
+        <RouterLink to="/products" class="btn btn-primary btn-lg">
+          Shop Now
+        </RouterLink>
+      </div>
 
-        <!-- Apply Coupon -->
-        <div class="form-group">
-          <label>Apply Coupon</label>
-          <div v-if="selectedCoupon" class="applied-coupon">
-            <span>{{ selectedCoupon.code }} - ₹{{ selectedCoupon.discount }} off</span>
-            <button type="button" @click="removeCoupon" class="btn-remove">Remove</button>
-          </div>
-          <button v-else type="button" @click="showCoupons = !showCoupons" class="btn-secondary">
-            {{ showCoupons ? 'Hide Coupons' : 'View Available Coupons' }}
-          </button>
-          
-          <div v-if="showCoupons && !selectedCoupon" class="coupons-list">
-            <div v-for="coupon in coupons" :key="coupon.code" 
-                 class="coupon-card" 
-                 :class="{ 'coupon-used': coupon.is_used }">
-              <div class="coupon-info">
-                <strong>{{ coupon.code }}</strong>
-                <p>{{ coupon.description }}</p>
-                <span class="coupon-discount">Save ₹{{ coupon.discount }}</span>
+      <!-- Checkout Content -->
+      <div v-else class="flex flex-col lg:flex-row gap-4">
+        <!-- Left Column - Checkout Steps -->
+        <div class="flex-1 min-w-0 space-y-4">
+          <!-- Step 1: Delivery Address -->
+          <div class="bg-white shadow-card rounded-sm">
+            <div 
+              :class="[
+                'flex items-center gap-3 p-4',
+                currentStep === 1 ? 'bg-flipkart-blue text-white' : 'border-b border-flipkart-gray-dark'
+              ]"
+            >
+              <span 
+                :class="[
+                  'w-6 h-6 flex items-center justify-center rounded-sm text-sm font-medium',
+                  currentStep === 1 ? 'bg-white text-flipkart-blue' : 'bg-flipkart-gray text-text-secondary'
+                ]"
+              >
+                1
+              </span>
+              <span class="font-medium">DELIVERY ADDRESS</span>
+              <span 
+                v-if="currentStep > 1 && shippingAddress" 
+                class="ml-auto text-sm text-flipkart-blue cursor-pointer"
+                @click="currentStep = 1"
+              >
+                Change
+              </span>
+            </div>
+
+            <div v-if="currentStep === 1" class="p-4">
+              <div class="mb-4">
+                <label class="form-label">Enter your delivery address</label>
+                <textarea
+                  v-model="shippingAddress"
+                  rows="4"
+                  placeholder="Full address with House/Flat No., Street, Area, City, State, PIN Code"
+                  class="form-input resize-none"
+                />
               </div>
-              <button 
-                v-if="!coupon.is_used"
-                type="button" 
-                @click="applyCoupon(coupon)" 
-                class="btn-apply">
-                Apply
+              <button
+                @click="proceedToPayment"
+                class="btn btn-primary"
+              >
+                Deliver Here
               </button>
-              <span v-else class="used-label">Used</span>
+            </div>
+
+            <div v-else-if="shippingAddress" class="p-4">
+              <p class="text-sm text-text-primary whitespace-pre-line">
+                {{ shippingAddress }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Step 2: Payment Options -->
+          <div class="bg-white shadow-card rounded-sm">
+            <div 
+              :class="[
+                'flex items-center gap-3 p-4',
+                currentStep === 2 ? 'bg-flipkart-blue text-white' : 'border-b border-flipkart-gray-dark'
+              ]"
+            >
+              <span 
+                :class="[
+                  'w-6 h-6 flex items-center justify-center rounded-sm text-sm font-medium',
+                  currentStep === 2 ? 'bg-white text-flipkart-blue' : 'bg-flipkart-gray text-text-secondary'
+                ]"
+              >
+                2
+              </span>
+              <span class="font-medium">PAYMENT OPTIONS</span>
+              <span 
+                v-if="currentStep > 2" 
+                class="ml-auto text-sm text-flipkart-blue cursor-pointer"
+                @click="currentStep = 2"
+              >
+                Change
+              </span>
+            </div>
+
+            <div v-if="currentStep === 2" class="p-4">
+              <!-- Payment Methods -->
+              <div class="space-y-3 mb-6">
+                <label 
+                  class="flex items-center gap-3 p-4 border rounded-sm cursor-pointer transition-colors"
+                  :class="paymentMethod === 'wallet' ? 'border-flipkart-blue bg-blue-50' : 'border-flipkart-gray-dark hover:border-flipkart-blue'"
+                >
+                  <input type="radio" v-model="paymentMethod" value="wallet" class="text-flipkart-blue" />
+                  <div class="flex-1">
+                    <span class="font-medium text-text-primary">Clipkart Wallet</span>
+                    <span class="ml-2 text-sm text-flipkart-green">
+                      (Balance: ₹{{ walletBalance.toLocaleString('en-IN') }})
+                    </span>
+                  </div>
+                </label>
+
+                <label 
+                  class="flex items-center gap-3 p-4 border rounded-sm cursor-pointer transition-colors"
+                  :class="paymentMethod === 'card' ? 'border-flipkart-blue bg-blue-50' : 'border-flipkart-gray-dark hover:border-flipkart-blue'"
+                >
+                  <input type="radio" v-model="paymentMethod" value="card" class="text-flipkart-blue" />
+                  <div class="flex-1">
+                    <span class="font-medium text-text-primary">Credit / Debit Card</span>
+                  </div>
+                  <div class="flex gap-1">
+                    <div class="w-8 h-5 bg-blue-600 rounded-sm"></div>
+                    <div class="w-8 h-5 bg-red-500 rounded-sm"></div>
+                    <div class="w-8 h-5 bg-orange-500 rounded-sm"></div>
+                  </div>
+                </label>
+
+                <label 
+                  class="flex items-center gap-3 p-4 border rounded-sm cursor-pointer transition-colors"
+                  :class="paymentMethod === 'upi' ? 'border-flipkart-blue bg-blue-50' : 'border-flipkart-gray-dark hover:border-flipkart-blue'"
+                >
+                  <input type="radio" v-model="paymentMethod" value="upi" class="text-flipkart-blue" />
+                  <div class="flex-1">
+                    <span class="font-medium text-text-primary">UPI</span>
+                    <span class="ml-2 text-xs text-text-secondary">Google Pay, PhonePe, Paytm</span>
+                  </div>
+                </label>
+
+                <label 
+                  class="flex items-center gap-3 p-4 border rounded-sm cursor-pointer transition-colors"
+                  :class="paymentMethod === 'cod' ? 'border-flipkart-blue bg-blue-50' : 'border-flipkart-gray-dark hover:border-flipkart-blue'"
+                >
+                  <input type="radio" v-model="paymentMethod" value="cod" class="text-flipkart-blue" />
+                  <div class="flex-1">
+                    <span class="font-medium text-text-primary">Cash on Delivery</span>
+                    <span class="ml-2 text-xs text-text-secondary">+₹50 COD charges</span>
+                  </div>
+                </label>
+              </div>
+
+              <!-- Apply Coupon -->
+              <div class="border-t border-flipkart-gray-dark pt-4">
+                <h3 class="font-medium text-text-primary mb-3">Apply Coupon</h3>
+                
+                <div v-if="selectedCoupon" class="flex items-center justify-between p-3 
+                                                   bg-green-50 border border-flipkart-green rounded-sm mb-4">
+                  <div>
+                    <span class="font-medium text-flipkart-green">{{ selectedCoupon.code }}</span>
+                    <span class="text-sm text-text-primary ml-2">
+                      - ₹{{ selectedCoupon.discount }} off
+                    </span>
+                  </div>
+                  <button @click="removeCoupon" class="text-sm text-red-500 hover:underline">
+                    Remove
+                  </button>
+                </div>
+
+                <button 
+                  v-else
+                  @click="showCoupons = !showCoupons"
+                  class="w-full p-3 border border-dashed border-flipkart-blue rounded-sm 
+                         text-flipkart-blue font-medium hover:bg-blue-50 transition-colors"
+                >
+                  {{ showCoupons ? 'Hide Coupons' : 'View Available Coupons' }}
+                </button>
+
+                <div v-if="showCoupons && !selectedCoupon" class="mt-4 space-y-3">
+                  <div 
+                    v-for="coupon in coupons" 
+                    :key="coupon.code"
+                    :class="[
+                      'p-4 border-2 border-dashed rounded-sm',
+                      coupon.is_used 
+                        ? 'border-flipkart-gray-dark bg-gray-50 opacity-60' 
+                        : 'border-flipkart-blue bg-blue-50'
+                    ]"
+                  >
+                    <div class="flex items-start justify-between">
+                      <div>
+                        <span class="font-bold text-flipkart-blue">{{ coupon.code }}</span>
+                        <p class="text-sm text-text-secondary mt-1">{{ coupon.description }}</p>
+                        <span class="inline-block mt-2 px-2 py-1 bg-flipkart-blue text-white 
+                                     text-xs font-medium rounded-sm">
+                          Save ₹{{ coupon.discount }}
+                        </span>
+                      </div>
+                      <button
+                        v-if="!coupon.is_used"
+                        @click="applyCoupon(coupon)"
+                        class="btn btn-primary btn-sm"
+                      >
+                        Apply
+                      </button>
+                      <span v-else class="text-sm text-text-hint font-medium">Used</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                @click="proceedToReview"
+                class="btn btn-primary mt-6"
+              >
+                Continue
+              </button>
+            </div>
+
+            <div v-else-if="currentStep > 2" class="p-4">
+              <p class="text-sm text-text-primary">
+                {{ paymentMethod === 'wallet' ? 'Clipkart Wallet' : 
+                   paymentMethod === 'card' ? 'Credit/Debit Card' :
+                   paymentMethod === 'upi' ? 'UPI' : 'Cash on Delivery' }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Step 3: Order Summary -->
+          <div class="bg-white shadow-card rounded-sm">
+            <div 
+              :class="[
+                'flex items-center gap-3 p-4',
+                currentStep === 3 ? 'bg-flipkart-blue text-white' : 'border-b border-flipkart-gray-dark'
+              ]"
+            >
+              <span 
+                :class="[
+                  'w-6 h-6 flex items-center justify-center rounded-sm text-sm font-medium',
+                  currentStep === 3 ? 'bg-white text-flipkart-blue' : 'bg-flipkart-gray text-text-secondary'
+                ]"
+              >
+                3
+              </span>
+              <span class="font-medium">ORDER SUMMARY</span>
+            </div>
+
+            <div v-if="currentStep === 3" class="p-4">
+              <!-- Order Items -->
+              <div class="space-y-4 mb-6">
+                <div 
+                  v-for="item in items" 
+                  :key="item.id"
+                  class="flex gap-4"
+                >
+                  <img
+                    :src="imageUrl(item.product_image_url)"
+                    :alt="item.product_name"
+                    class="w-16 h-16 object-contain border border-flipkart-gray-dark rounded-sm"
+                  />
+                  <div class="flex-1 min-w-0">
+                    <h4 class="text-sm text-text-primary line-clamp-1">{{ item.product_name }}</h4>
+                    <p class="text-xs text-text-secondary mt-1">Qty: {{ item.quantity }}</p>
+                    <p class="text-sm font-medium text-text-primary mt-1">
+                      ₹{{ (item.product_price * item.quantity).toLocaleString('en-IN') }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Error Message -->
+              <div 
+                v-if="error" 
+                class="p-3 bg-red-50 border border-red-200 rounded-sm text-red-600 text-sm mb-4"
+              >
+                {{ error }}
+              </div>
+
+              <!-- Place Order Button -->
+              <button
+                @click="placeOrder"
+                :disabled="submitting"
+                class="w-full py-4 bg-flipkart-orange text-white text-lg font-medium 
+                       rounded-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {{ submitting ? 'Processing...' : `Pay ₹${total.toLocaleString('en-IN')}` }}
+              </button>
+
+              <p class="text-xs text-text-secondary text-center mt-4">
+                By placing this order, you agree to Clipkart's Terms of Use and Privacy Policy
+              </p>
             </div>
           </div>
         </div>
 
-        <p v-if="error" class="error">{{ error }}</p>
-        <button type="submit" class="btn btn-primary btn-place-order" :disabled="submitting">
-          {{ submitting ? 'Processing...' : `Pay ₹${total.toLocaleString('en-IN')}` }}
-        </button>
-      </form>
+        <!-- Right Column - Price Summary -->
+        <div class="lg:w-96 flex-shrink-0">
+          <div class="bg-white shadow-card rounded-sm sticky top-32">
+            <div class="p-4 border-b border-flipkart-gray-dark">
+              <h2 class="text-text-secondary font-medium uppercase text-sm">Price Details</h2>
+            </div>
 
-      <!-- Order Summary -->
-      <div class="order-summary card">
-        <h3>Order Summary</h3>
-        <ul class="items-list">
-          <li v-for="item in items" :key="item.id">
-            <span>{{ item.product_name }} × {{ item.quantity }}</span>
-            <span>₹{{ (item.product_price * item.quantity).toLocaleString('en-IN') }}</span>
-          </li>
-        </ul>
-        <div class="summary-row">
-          <span>Subtotal</span>
-          <span>₹{{ subtotal.toLocaleString('en-IN') }}</span>
-        </div>
-        <div v-if="couponDiscount > 0" class="summary-row discount">
-          <span>Coupon Discount</span>
-          <span>-₹{{ couponDiscount.toLocaleString('en-IN') }}</span>
-        </div>
-        <div class="summary-row total">
-          <span>Total</span>
-          <span>₹{{ total.toLocaleString('en-IN') }}</span>
+            <div class="p-4 space-y-3">
+              <div class="flex justify-between text-sm">
+                <span class="text-text-primary">
+                  Price ({{ totalItems }} {{ totalItems === 1 ? 'item' : 'items' }})
+                </span>
+                <span class="text-text-primary">₹{{ subtotal.toLocaleString('en-IN') }}</span>
+              </div>
+
+              <div class="flex justify-between text-sm">
+                <span class="text-text-primary">Discount</span>
+                <span class="text-flipkart-green">− ₹{{ discount.toLocaleString('en-IN') }}</span>
+              </div>
+
+              <div v-if="selectedCoupon" class="flex justify-between text-sm">
+                <span class="text-text-primary">Coupon ({{ selectedCoupon.code }})</span>
+                <span class="text-flipkart-green">− ₹{{ couponDiscount.toLocaleString('en-IN') }}</span>
+              </div>
+
+              <div class="flex justify-between text-sm">
+                <span class="text-text-primary">Delivery Charges</span>
+                <span v-if="deliveryCharges === 0" class="text-flipkart-green">FREE</span>
+                <span v-else class="text-text-primary">₹{{ deliveryCharges }}</span>
+              </div>
+
+              <div class="pt-3 border-t border-dashed border-flipkart-gray-dark">
+                <div class="flex justify-between">
+                  <span class="font-medium text-text-primary">Total Amount</span>
+                  <span class="font-medium text-text-primary">₹{{ total.toLocaleString('en-IN') }}</span>
+                </div>
+              </div>
+
+              <div class="pt-3">
+                <p class="text-sm text-flipkart-green font-medium">
+                  You will save ₹{{ discount.toLocaleString('en-IN') }} on this order
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -219,228 +492,10 @@ async function placeOrder() {
 </template>
 
 <style scoped>
-.checkout-page h1 {
-  font-size: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.loading, .empty {
-  padding: 2rem;
-  text-align: center;
-}
-
-.checkout-container {
-  display: grid;
-  grid-template-columns: 1fr 400px;
-  gap: 2rem;
-  align-items: start;
-}
-
-@media (max-width: 900px) {
-  .checkout-container {
-    grid-template-columns: 1fr;
-  }
-}
-
-.checkout-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.form-group label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  font-size: 0.95rem;
-}
-
-.form-group textarea {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-family: inherit;
-  font-size: 0.95rem;
-}
-
-.payment-methods {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 0.75rem;
-}
-
-.payment-option {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.payment-option:has(input:checked) {
-  border-color: #2874f0;
-  background: #f0f5ff;
-}
-
-.payment-option input[type="radio"] {
-  cursor: pointer;
-}
-
-.applied-coupon {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem;
-  background: #d1fae5;
-  border: 1px solid #10b981;
-  border-radius: 6px;
-  font-size: 0.9rem;
-}
-
-.btn-remove {
-  background: #ef4444;
-  color: white;
-  border: none;
-  padding: 0.4rem 0.8rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.85rem;
-}
-
-.btn-secondary {
-  width: 100%;
-  padding: 0.75rem;
-  background: #f3f4f6;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.coupons-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-top: 1rem;
-}
-
-.coupon-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  border: 2px dashed #2874f0;
-  border-radius: 8px;
-  background: #f0f5ff;
-}
-
-.coupon-card.coupon-used {
-  opacity: 0.5;
-  border-color: #ccc;
-  background: #f5f5f5;
-}
-
-.coupon-info strong {
-  display: block;
-  color: #2874f0;
-  font-size: 1rem;
-  margin-bottom: 0.25rem;
-}
-
-.coupon-info p {
-  margin: 0.25rem 0;
-  font-size: 0.85rem;
-  color: #666;
-}
-
-.coupon-discount {
-  display: inline-block;
-  margin-top: 0.5rem;
-  padding: 0.25rem 0.5rem;
-  background: #2874f0;
-  color: white;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.btn-apply {
-  padding: 0.5rem 1rem;
-  background: #2874f0;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.used-label {
-  color: #999;
-  font-weight: 600;
-}
-
-.order-summary {
-  padding: 1.5rem;
-  position: sticky;
-  top: 1rem;
-}
-
-.order-summary h3 {
-  font-size: 1.1rem;
-  margin-bottom: 1rem;
-}
-
-.items-list {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 1rem;
-}
-
-.items-list li {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.5rem 0;
-  font-size: 0.9rem;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.summary-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.5rem 0;
-  font-size: 0.95rem;
-}
-
-.summary-row.discount {
-  color: #10b981;
-  font-weight: 600;
-}
-
-.summary-row.total {
-  font-size: 1.2rem;
-  font-weight: 700;
-  margin-top: 0.5rem;
-  padding-top: 1rem;
-  border-top: 2px solid #e5e7eb;
-}
-
-.btn-place-order {
-  width: 100%;
-  padding: 1rem;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.error {
-  color: #e53e3e;
-  margin: 0;
-  font-size: 0.9rem;
-  padding: 0.75rem;
-  background: #fee;
-  border-radius: 4px;
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 </style>

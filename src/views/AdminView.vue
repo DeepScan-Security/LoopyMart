@@ -10,7 +10,7 @@ const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
 const success = ref('')
-const tab = ref('products')
+const tab = ref('dashboard')
 const showProductForm = ref(false)
 const editingProduct = ref(null)
 const showCategoryForm = ref(false)
@@ -52,7 +52,7 @@ async function load() {
     } else if (ordRes.status === 'rejected') {
       const statusCode = ordRes.reason?.response?.status
       if (statusCode === 403) {
-        ordersError.value = 'Admin access required. Log in as admin@example.com (password: admin123) to see all orders from all users.'
+        ordersError.value = 'Admin access required to view orders.'
       } else if (statusCode === 401) {
         ordersError.value = 'Please log in as admin to see orders.'
       } else {
@@ -66,14 +66,19 @@ async function load() {
   }
 }
 
-const categoryOptions = computed(() =>
-  categoriesList.value.map((c) => ({ value: c.id, label: c.name }))
-)
+// Dashboard stats
+const stats = computed(() => ({
+  totalProducts: productsList.value.length,
+  totalCategories: categoriesList.value.length,
+  totalOrders: ordersList.value.length,
+  totalRevenue: ordersList.value.reduce((sum, o) => sum + (o.total || 0), 0),
+  pendingOrders: ordersList.value.filter(o => o.status === 'pending').length,
+  deliveredOrders: ordersList.value.filter(o => o.status === 'delivered').length,
+}))
 
 function imageUrl(url) {
   if (!url) return '/dummy-product.png'
   if (url.startsWith('http') || url.startsWith('//')) return url
-  // Use VITE_STATIC_URL env variable or default to API proxy in dev
   const staticUrl = import.meta.env.VITE_STATIC_URL || ''
   if (url.startsWith('/static/')) return staticUrl + url
   return url
@@ -225,339 +230,414 @@ async function deleteCategory(id) {
     error.value = e.response?.data?.detail || 'Failed to delete'
   }
 }
+
+const tabs = [
+  { id: 'dashboard', label: 'Dashboard', icon: 'chart' },
+  { id: 'products', label: 'Products', icon: 'box' },
+  { id: 'categories', label: 'Categories', icon: 'folder' },
+  { id: 'orders', label: 'Orders', icon: 'truck' },
+]
 </script>
 
 <template>
-  <div class="admin-page">
-    <h1>Admin</h1>
-    <div class="tabs">
-      <button type="button" class="tab" :class="{ active: tab === 'products' }" @click="tab = 'products'">
-        Products
-      </button>
-      <button type="button" class="tab" :class="{ active: tab === 'categories' }" @click="tab = 'categories'">
-        Categories
-      </button>
-      <button type="button" class="tab" :class="{ active: tab === 'orders' }" @click="tab = 'orders'">
-        Orders
-      </button>
-    </div>
+  <div class="min-h-screen bg-flipkart-gray">
+    <div class="flex">
+      <!-- Sidebar -->
+      <aside class="w-64 bg-[#1a1a2e] min-h-screen sticky top-0 flex-shrink-0 hidden lg:block">
+        <div class="p-6">
+          <h1 class="text-xl font-bold text-white">Admin Panel</h1>
+          <p class="text-xs text-white/50 mt-1">Clipkart Dashboard</p>
+        </div>
 
-    <div v-if="tab === 'products'" class="section">
-      <button type="button" class="btn btn-primary" @click="openAddProduct">Add Product</button>
-      <div v-if="loading" class="loading">Loading...</div>
-      <div v-else class="table-wrap card">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>Image</th>
-              <th>Name</th>
-              <th>Price</th>
-              <th>Stock</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="p in productsList" :key="p.id">
-              <td>
-                <img :src="imageUrl(p.image_url)" :alt="p.name" class="thumb" />
-              </td>
-              <td>{{ p.name }}</td>
-              <td>₹{{ p.price.toLocaleString('en-IN') }}</td>
-              <td>{{ p.stock }}</td>
-              <td>
-                <button type="button" class="btn small" @click="openEditProduct(p)">Edit</button>
-                <button type="button" class="btn btn-danger small" @click="deleteProduct(p.id)">Delete</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+        <nav class="px-4 pb-6">
+          <button
+            v-for="t in tabs"
+            :key="t.id"
+            @click="tab = t.id"
+            :class="[
+              'w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors text-left',
+              tab === t.id 
+                ? 'bg-flipkart-blue text-white' 
+                : 'text-white/70 hover:bg-white/10 hover:text-white'
+            ]"
+          >
+            <svg width="20" height="20" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path v-if="t.icon === 'chart'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+              <path v-if="t.icon === 'box'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+              <path v-if="t.icon === 'folder'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                    d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+              <path v-if="t.icon === 'truck'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                    d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+            </svg>
+            <span class="font-medium text-sm">{{ t.label }}</span>
+          </button>
+        </nav>
+      </aside>
 
-    <div v-if="tab === 'categories'" class="section">
-      <button type="button" class="btn btn-primary" @click="openAddCategory">Add Category</button>
-      <div v-if="loading" class="loading">Loading...</div>
-      <ul v-else class="category-list">
-        <li v-for="c in categoriesList" :key="c.id" class="card category-item">
-          <span class="category-item-label">{{ c.name }}</span>
-          <span class="slug">{{ c.slug }}</span>
-          <div class="category-item-actions">
-            <button type="button" class="btn small" @click="openEditCategory(c)">Edit</button>
-            <button type="button" class="btn btn-danger small" @click="deleteCategory(c.id)">Delete</button>
+      <!-- Main Content -->
+      <main class="flex-1 p-6">
+        <!-- Mobile Tab Selector -->
+        <div class="lg:hidden mb-6 flex gap-2 overflow-x-auto scrollbar-hide">
+          <button
+            v-for="t in tabs"
+            :key="t.id"
+            @click="tab = t.id"
+            :class="[
+              'px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors',
+              tab === t.id 
+                ? 'bg-flipkart-blue text-white' 
+                : 'bg-white text-text-primary'
+            ]"
+          >
+            {{ t.label }}
+          </button>
+        </div>
+
+        <!-- Loading State -->
+        <div v-if="loading" class="bg-white shadow-card rounded-lg p-12 text-center">
+          <div class="inline-block w-8 h-8 border-4 border-flipkart-blue border-t-transparent 
+                      rounded-full animate-spin"></div>
+          <p class="mt-4 text-text-secondary">Loading dashboard...</p>
+        </div>
+
+        <template v-else>
+          <!-- Dashboard Tab -->
+          <div v-if="tab === 'dashboard'">
+            <h2 class="text-2xl font-bold text-text-primary mb-6">Dashboard Overview</h2>
+            
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <div class="bg-white shadow-card rounded-lg p-6">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-text-secondary text-sm">Total Products</p>
+                    <p class="text-3xl font-bold text-text-primary mt-1">{{ stats.totalProducts }}</p>
+                  </div>
+                  <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <svg width="24" height="24" class="w-6 h-6 text-flipkart-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-white shadow-card rounded-lg p-6">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-text-secondary text-sm">Categories</p>
+                    <p class="text-3xl font-bold text-text-primary mt-1">{{ stats.totalCategories }}</p>
+                  </div>
+                  <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <svg width="24" height="24" class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                            d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-white shadow-card rounded-lg p-6">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-text-secondary text-sm">Total Orders</p>
+                    <p class="text-3xl font-bold text-text-primary mt-1">{{ stats.totalOrders }}</p>
+                  </div>
+                  <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <svg width="24" height="24" class="w-6 h-6 text-flipkart-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-white shadow-card rounded-lg p-6">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-text-secondary text-sm">Total Revenue</p>
+                    <p class="text-3xl font-bold text-text-primary mt-1">
+                      ₹{{ stats.totalRevenue.toLocaleString('en-IN') }}
+                    </p>
+                  </div>
+                  <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                    <svg width="24" height="24" class="w-6 h-6 text-flipkart-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="bg-white shadow-card rounded-lg p-6">
+                <h3 class="font-medium text-text-primary mb-4">Quick Actions</h3>
+                <div class="flex flex-wrap gap-3">
+                  <button @click="tab = 'products'; openAddProduct()" class="btn btn-primary">
+                    Add Product
+                  </button>
+                  <button @click="tab = 'categories'; openAddCategory()" class="btn btn-secondary">
+                    Add Category
+                  </button>
+                </div>
+              </div>
+
+              <div class="bg-white shadow-card rounded-lg p-6">
+                <h3 class="font-medium text-text-primary mb-4">Order Status</h3>
+                <div class="flex gap-6">
+                  <div>
+                    <p class="text-2xl font-bold text-flipkart-orange">{{ stats.pendingOrders }}</p>
+                    <p class="text-sm text-text-secondary">Pending</p>
+                  </div>
+                  <div>
+                    <p class="text-2xl font-bold text-flipkart-green">{{ stats.deliveredOrders }}</p>
+                    <p class="text-sm text-text-secondary">Delivered</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </li>
-      </ul>
+
+          <!-- Products Tab -->
+          <div v-if="tab === 'products'">
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-2xl font-bold text-text-primary">Products</h2>
+              <button @click="openAddProduct" class="btn btn-primary">
+                + Add Product
+              </button>
+            </div>
+
+            <div class="bg-white shadow-card rounded-lg overflow-hidden">
+              <div class="overflow-x-auto">
+                <table class="w-full">
+                  <thead class="bg-flipkart-gray">
+                    <tr>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase">Image</th>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase">Name</th>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase">Price</th>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase">Stock</th>
+                      <th class="px-6 py-3 text-right text-xs font-medium text-text-secondary uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-flipkart-gray-dark">
+                    <tr v-for="p in productsList" :key="p.id" class="hover:bg-flipkart-gray/50">
+                      <td class="px-6 py-4">
+                        <img :src="imageUrl(p.image_url)" :alt="p.name" 
+                             class="w-12 h-12 object-contain bg-flipkart-gray rounded" />
+                      </td>
+                      <td class="px-6 py-4">
+                        <p class="font-medium text-text-primary">{{ p.name }}</p>
+                      </td>
+                      <td class="px-6 py-4 text-text-primary">
+                        ₹{{ p.price.toLocaleString('en-IN') }}
+                      </td>
+                      <td class="px-6 py-4">
+                        <span :class="[
+                          'px-2 py-1 rounded-full text-xs font-medium',
+                          p.stock > 10 ? 'bg-green-100 text-flipkart-green' :
+                          p.stock > 0 ? 'bg-orange-100 text-flipkart-orange' :
+                          'bg-red-100 text-red-600'
+                        ]">
+                          {{ p.stock }}
+                        </span>
+                      </td>
+                      <td class="px-6 py-4 text-right">
+                        <button @click="openEditProduct(p)" class="btn btn-sm mr-2">Edit</button>
+                        <button @click="deleteProduct(p.id)" class="btn btn-sm btn-danger">Delete</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Categories Tab -->
+          <div v-if="tab === 'categories'">
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-2xl font-bold text-text-primary">Categories</h2>
+              <button @click="openAddCategory" class="btn btn-primary">
+                + Add Category
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div 
+                v-for="c in categoriesList" 
+                :key="c.id"
+                class="bg-white shadow-card rounded-lg p-4 flex items-center justify-between"
+              >
+                <div>
+                  <p class="font-medium text-text-primary">{{ c.name }}</p>
+                  <p class="text-sm text-text-secondary">{{ c.slug }}</p>
+                </div>
+                <div class="flex gap-2">
+                  <button @click="openEditCategory(c)" class="btn btn-sm">Edit</button>
+                  <button @click="deleteCategory(c.id)" class="btn btn-sm btn-danger">Delete</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Orders Tab -->
+          <div v-if="tab === 'orders'">
+            <h2 class="text-2xl font-bold text-text-primary mb-6">Orders</h2>
+
+            <div v-if="ordersError" class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-600 mb-4">
+              {{ ordersError }}
+            </div>
+
+            <div v-else-if="ordersList.length === 0" class="bg-white shadow-card rounded-lg p-12 text-center">
+              <p class="text-text-secondary">No orders yet.</p>
+            </div>
+
+            <div v-else class="bg-white shadow-card rounded-lg overflow-hidden">
+              <div class="overflow-x-auto">
+                <table class="w-full">
+                  <thead class="bg-flipkart-gray">
+                    <tr>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase">Order ID</th>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase">Customer</th>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase">Status</th>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase">Total</th>
+                      <th class="px-6 py-3 text-left text-xs font-medium text-text-secondary uppercase">Items</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-flipkart-gray-dark">
+                    <tr v-for="order in ordersList" :key="order.id" class="hover:bg-flipkart-gray/50">
+                      <td class="px-6 py-4 font-medium text-text-primary">
+                        #{{ order.id.slice(0, 8) }}
+                      </td>
+                      <td class="px-6 py-4">
+                        <p class="text-text-primary">{{ order.user_email || '—' }}</p>
+                        <p v-if="order.user_name" class="text-xs text-text-secondary">{{ order.user_name }}</p>
+                      </td>
+                      <td class="px-6 py-4">
+                        <span :class="[
+                          'px-2 py-1 rounded-full text-xs font-medium uppercase',
+                          order.status === 'delivered' ? 'bg-green-100 text-flipkart-green' :
+                          order.status === 'shipped' ? 'bg-blue-100 text-flipkart-blue' :
+                          order.status === 'processing' ? 'bg-orange-100 text-flipkart-orange' :
+                          'bg-yellow-100 text-yellow-600'
+                        ]">
+                          {{ order.status }}
+                        </span>
+                      </td>
+                      <td class="px-6 py-4 font-medium text-text-primary">
+                        ₹{{ order.total.toLocaleString('en-IN') }}
+                      </td>
+                      <td class="px-6 py-4">
+                        <ul class="text-sm text-text-secondary">
+                          <li v-for="item in order.items.slice(0, 2)" :key="item.id">
+                            {{ item.product_name }} × {{ item.quantity }}
+                          </li>
+                          <li v-if="order.items.length > 2" class="text-text-hint">
+                            +{{ order.items.length - 2 }} more
+                          </li>
+                        </ul>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </template>
+      </main>
     </div>
 
-    <div v-if="tab === 'orders'" class="section">
-      <h2>All Orders (all users)</h2>
-      <p v-if="ordersError" class="error orders-error">{{ ordersError }}</p>
-      <p v-else-if="!loading && ordersList.length === 0" class="empty">No orders yet.</p>
-      <div v-else-if="loading" class="loading">Loading...</div>
-      <div v-else class="table-wrap card">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>Order #</th>
-              <th>Placed by</th>
-              <th>Status</th>
-              <th>Total</th>
-              <th>Address</th>
-              <th>Items</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="order in ordersList" :key="order.id">
-              <td>#{{ order.id }}</td>
-              <td class="user-cell">{{ order.user_email || order.user_name || '—' }} <span v-if="order.user_name && order.user_email" class="user-name">({{ order.user_name }})</span></td>
-              <td><span class="order-status">{{ order.status }}</span></td>
-              <td>₹{{ order.total.toLocaleString('en-IN') }}</td>
-              <td class="address-cell">{{ order.shipping_address }}</td>
-              <td>
-                <ul class="order-items-list">
-                  <li v-for="item in order.items" :key="item.id">
-                    {{ item.product_name }} × {{ item.quantity }}
-                  </li>
-                </ul>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+    <!-- Product Modal -->
+    <Teleport to="body">
+      <div v-if="showProductForm" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/50" @click="showProductForm = false"></div>
+        <div class="relative bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+          <div class="p-6 border-b border-flipkart-gray-dark">
+            <h2 class="text-xl font-bold text-text-primary">
+              {{ editingProduct ? 'Edit Product' : 'Add Product' }}
+            </h2>
+          </div>
+          <div class="p-6 space-y-4">
+            <div v-if="error" class="p-3 bg-red-50 text-red-600 rounded text-sm">{{ error }}</div>
+            <div v-if="success" class="p-3 bg-green-50 text-flipkart-green rounded text-sm">{{ success }}</div>
+            
+            <div>
+              <label class="form-label">Name</label>
+              <input v-model="productForm.name" type="text" required class="form-input" />
+            </div>
+            <div>
+              <label class="form-label">Description</label>
+              <textarea v-model="productForm.description" rows="2" class="form-input resize-none"></textarea>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="form-label">Price</label>
+                <input v-model.number="productForm.price" type="number" step="0.01" min="0" required class="form-input" />
+              </div>
+              <div>
+                <label class="form-label">Stock</label>
+                <input v-model.number="productForm.stock" type="number" min="0" class="form-input" />
+              </div>
+            </div>
+            <div>
+              <label class="form-label">Category</label>
+              <select v-model="productForm.category_id" required class="form-input">
+                <option v-for="c in categoriesList" :key="c.id" :value="c.id">{{ c.name }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Image URL</label>
+              <input v-model="productForm.image_url" type="text" class="form-input" placeholder="/dummy-product.png" />
+            </div>
+            <div>
+              <label class="form-label">Or Upload Image</label>
+              <input ref="uploadFile" type="file" accept="image/*" class="form-input" />
+            </div>
+          </div>
+          <div class="p-6 border-t border-flipkart-gray-dark flex gap-3 justify-end">
+            <button @click="showProductForm = false" class="btn">Cancel</button>
+            <button @click="saveProduct" :disabled="saving" class="btn btn-primary">
+              {{ saving ? 'Saving...' : 'Save' }}
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
+    </Teleport>
 
-    <!-- Product modal -->
-    <div v-if="showProductForm" class="modal" @click.self="showProductForm = false">
-      <div class="modal-content card">
-        <h2>{{ editingProduct ? 'Edit Product' : 'Add Product' }}</h2>
-        <p v-if="error" class="error">{{ error }}</p>
-        <p v-if="success" class="success">{{ success }}</p>
-        <div class="form-group">
-          <label>Name</label>
-          <input v-model="productForm.name" type="text" required />
-        </div>
-        <div class="form-group">
-          <label>Description</label>
-          <textarea v-model="productForm.description" rows="2" />
-        </div>
-        <div class="form-group">
-          <label>Price</label>
-          <input v-model.number="productForm.price" type="number" step="0.01" min="0" required />
-        </div>
-        <div class="form-group">
-          <label>Stock</label>
-          <input v-model.number="productForm.stock" type="number" min="0" />
-        </div>
-        <div class="form-group">
-          <label>Category</label>
-          <select v-model="productForm.category_id" required>
-            <option v-for="c in categoriesList" :key="c.id" :value="c.id">{{ c.name }}</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Image URL (or upload below)</label>
-          <input v-model="productForm.image_url" type="text" placeholder="/dummy-product.png" />
-        </div>
-        <div class="form-group">
-          <label>Upload image</label>
-          <input ref="uploadFile" type="file" accept="image/*" />
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn" @click="showProductForm = false">Cancel</button>
-          <button type="button" class="btn btn-primary" :disabled="saving" @click="saveProduct">
-            {{ saving ? 'Saving...' : 'Save' }}
-          </button>
+    <!-- Category Modal -->
+    <Teleport to="body">
+      <div v-if="showCategoryForm" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/50" @click="showCategoryForm = false"></div>
+        <div class="relative bg-white rounded-lg shadow-xl w-full max-w-md">
+          <div class="p-6 border-b border-flipkart-gray-dark">
+            <h2 class="text-xl font-bold text-text-primary">
+              {{ editingCategory ? 'Edit Category' : 'Add Category' }}
+            </h2>
+          </div>
+          <div class="p-6 space-y-4">
+            <div v-if="error" class="p-3 bg-red-50 text-red-600 rounded text-sm">{{ error }}</div>
+            <div v-if="success" class="p-3 bg-green-50 text-flipkart-green rounded text-sm">{{ success }}</div>
+            
+            <div>
+              <label class="form-label">Name</label>
+              <input v-model="categoryForm.name" type="text" required class="form-input" />
+            </div>
+            <div>
+              <label class="form-label">Slug</label>
+              <input v-model="categoryForm.slug" type="text" required class="form-input" placeholder="electronics" />
+            </div>
+          </div>
+          <div class="p-6 border-t border-flipkart-gray-dark flex gap-3 justify-end">
+            <button @click="showCategoryForm = false" class="btn">Cancel</button>
+            <button @click="saveCategory" :disabled="saving" class="btn btn-primary">
+              {{ saving ? 'Saving...' : 'Save' }}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-
-    <!-- Category modal -->
-    <div v-if="showCategoryForm" class="modal" @click.self="showCategoryForm = false">
-      <div class="modal-content card">
-        <h2>{{ editingCategory ? 'Edit Category' : 'Add Category' }}</h2>
-        <p v-if="error" class="error">{{ error }}</p>
-        <p v-if="success" class="success">{{ success }}</p>
-        <div class="form-group">
-          <label>Name</label>
-          <input v-model="categoryForm.name" type="text" required />
-        </div>
-        <div class="form-group">
-          <label>Slug</label>
-          <input v-model="categoryForm.slug" type="text" placeholder="electronics" required />
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn" @click="showCategoryForm = false">Cancel</button>
-          <button type="button" class="btn btn-primary" :disabled="saving" @click="saveCategory">
-            {{ saving ? 'Saving...' : 'Save' }}
-          </button>
-        </div>
-      </div>
-    </div>
+    </Teleport>
   </div>
 </template>
-
-<style scoped>
-.admin-page h1 {
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
-}
-.tabs {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-}
-.tab {
-  padding: 0.5rem 1rem;
-  border: 1px solid #ddd;
-  background: #fff;
-  border-radius: 4px;
-  cursor: pointer;
-}
-.tab.active {
-  background: #2874f0;
-  color: #fff;
-  border-color: #2874f0;
-}
-.section {
-  margin-bottom: 2rem;
-}
-.section .btn-primary {
-  margin-bottom: 1rem;
-}
-.loading {
-  padding: 2rem;
-  text-align: center;
-}
-.table-wrap {
-  overflow-x: auto;
-}
-.admin-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.admin-table th,
-.admin-table td {
-  padding: 0.75rem;
-  text-align: left;
-  border-bottom: 1px solid #eee;
-}
-.admin-table .thumb {
-  width: 48px;
-  height: 48px;
-  object-fit: contain;
-  background: #f5f5f5;
-}
-.admin-table .small {
-  padding: 0.3rem 0.6rem;
-  font-size: 0.85rem;
-  margin-right: 0.5rem;
-}
-.category-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.category-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.75rem 1rem;
-  margin-bottom: 0.5rem;
-}
-.category-item-label {
-  font-weight: 500;
-  min-width: 0;
-}
-.category-item .slug {
-  color: #666;
-  font-size: 0.9rem;
-  flex: 1;
-  min-width: 0;
-}
-.category-item-actions {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-shrink: 0;
-}
-.category-item-actions .small {
-  margin-right: 0;
-}
-.modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  padding: 1rem;
-}
-.modal-content {
-  max-width: 440px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  padding: 1.5rem;
-}
-.modal-content h2 {
-  font-size: 1.25rem;
-  margin-bottom: 1rem;
-}
-.error {
-  color: #e53e3e;
-  font-size: 0.9rem;
-  margin-bottom: 0.5rem;
-}
-.success {
-  color: #0a0;
-  font-size: 0.9rem;
-  margin-bottom: 0.5rem;
-}
-.modal-actions {
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 1rem;
-}
-.order-status {
-  text-transform: capitalize;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  background: #e8f4fd;
-  color: #2874f0;
-}
-.user-cell {
-  font-size: 0.9rem;
-}
-.user-cell .user-name {
-  color: #666;
-  font-size: 0.85rem;
-}
-.address-cell {
-  max-width: 200px;
-  font-size: 0.85rem;
-  color: #555;
-}
-.order-items-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  font-size: 0.85rem;
-}
-.order-items-list li {
-  padding: 0.1rem 0;
-}
-.empty {
-  padding: 2rem;
-  text-align: center;
-  color: #666;
-}
-.orders-error {
-  margin: 0.5rem 0;
-  padding: 0.75rem;
-  background: #fef2f2;
-  border-radius: 4px;
-}
-</style>

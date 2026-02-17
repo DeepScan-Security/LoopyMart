@@ -1,9 +1,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { RouterLink } from 'vue-router'
 import client from '@/api/client'
 
-const router = useRouter()
 const user = ref(null)
 const loading = ref(true)
 const error = ref('')
@@ -140,449 +139,345 @@ async function upgradeToBlack() {
   try {
     const res = await client.post('/auth/upgrade-black')
     user.value = res.data
-    success.value = 'Welcome to Clipkart! '
+    success.value = 'Welcome to Clipkart Black!'
   } catch (e) {
     error.value = e.response?.data?.detail || 'Failed to upgrade'
   }
 }
+
+const tabs = [
+  { id: 'profile', label: 'My Profile', icon: 'user' },
+  { id: 'picture', label: 'Profile Picture', icon: 'camera' },
+  { id: 'orders', label: 'My Orders', icon: 'package' },
+  { id: 'kyc', label: 'KYC Verification', icon: 'shield' },
+  { id: 'membership', label: 'Clipkart Plus', icon: 'crown' },
+]
 </script>
 
 <template>
-  <div class="profile-page">
-    <h1>My Profile</h1>
-    
-    <div v-if="loading" class="loading">Loading...</div>
-    
-    <div v-else class="profile-container">
-      <!-- Profile Header -->
-      <div class="profile-header card">
-        <div class="profile-avatar">
-          <img 
-            v-if="user.profile_picture_url" 
-            :src="user.profile_picture_url" 
-            alt="Profile" 
-          />
-          <div v-else class="avatar-placeholder">
-            {{ user.full_name.charAt(0).toUpperCase() }}
-          </div>
-        </div>
-        <div class="profile-info">
-          <h2>{{ user.full_name }}</h2>
-          <p>{{ user.email }}</p>
-          <div class="badges">
-            <span v-if="user.is_black_member" class="badge badge-black">
-              👑 Clipkart
-            </span>
-            <span v-if="kyc && kyc.status === 'VERIFIED'" class="badge badge-verified">
-              ✓ KYC Verified
-            </span>
-          </div>
-          <div class="wallet-balance">
-            Wallet: ₹{{ user.wallet_balance.toLocaleString('en-IN') }}
-          </div>
-        </div>
+  <div class="min-h-screen bg-flipkart-gray py-4">
+    <div class="max-w-container mx-auto px-4">
+      <!-- Loading -->
+      <div v-if="loading" class="bg-white shadow-card rounded-sm p-12 text-center">
+        <div class="inline-block w-8 h-8 border-4 border-flipkart-blue border-t-transparent 
+                    rounded-full animate-spin"></div>
+        <p class="mt-4 text-text-secondary">Loading profile...</p>
       </div>
 
-      <!-- Tabs -->
-      <div class="tabs">
-        <button 
-          @click="activeTab = 'profile'" 
-          :class="{ active: activeTab === 'profile' }">
-          Profile
-        </button>
-        <button 
-          @click="activeTab = 'picture'" 
-          :class="{ active: activeTab === 'picture' }">
-          Picture
-        </button>
-        <button 
-          @click="activeTab = 'kyc'" 
-          :class="{ active: activeTab === 'kyc' }">
-          KYC
-        </button>
-        <button 
-          @click="activeTab = 'membership'" 
-          :class="{ active: activeTab === 'membership' }">
-          Membership
-        </button>
-      </div>
-
-      <!-- Messages -->
-      <div v-if="error" class="error">{{ error }}</div>
-      <div v-if="success" class="success">{{ success }}</div>
-
-      <!-- Profile Tab -->
-      <div v-if="activeTab === 'profile'" class="tab-content card">
-        <h3>Update Profile</h3>
-        <form @submit.prevent="updateProfile" class="form">
-          <div class="form-group">
-            <label>Full Name</label>
-            <input v-model="profile.full_name" type="text" required />
-          </div>
-          <div class="form-group">
-            <label>Phone</label>
-            <input v-model="profile.phone" type="tel" />
-          </div>
-          <div class="form-group">
-            <label>Address</label>
-            <textarea v-model="profile.address" rows="3"></textarea>
-          </div>
-          <button type="submit" class="btn btn-primary">Update Profile</button>
-        </form>
-      </div>
-
-      <!-- Picture Tab -->
-      <div v-if="activeTab === 'picture'" class="tab-content card">
-        <h3>Profile Picture</h3>
-        <div class="picture-upload">
-          <input 
-            type="file" 
-            accept="image/*" 
-            @change="handleProfilePictureChange"
-            id="picture-upload"
-          />
-          <label for="picture-upload" class="btn btn-secondary">Choose Picture</label>
-          <img 
-            v-if="profilePicturePreview" 
-            :src="profilePicturePreview" 
-            class="picture-preview" 
-            alt="Preview"
-          />
-          <button 
-            v-if="profilePicture" 
-            @click="uploadProfilePicture" 
-            class="btn btn-primary">
-            Upload Picture
-          </button>
-        </div>
-      </div>
-
-      <!-- KYC Tab -->
-      <div v-if="activeTab === 'kyc'" class="tab-content card">
-        <h3>KYC Verification</h3>
-        
-        <div v-if="!kyc">
-          <form @submit.prevent="createKYC" class="form">
-            <div class="form-group">
-              <label>Document Type</label>
-              <select v-model="kycForm.document_type">
-                <option value="AADHAR">Aadhar Card</option>
-                <option value="PAN">PAN Card</option>
-              </select>
+      <div v-else class="flex flex-col lg:flex-row gap-4">
+        <!-- Left Sidebar -->
+        <aside class="lg:w-72 flex-shrink-0">
+          <!-- User Info Card -->
+          <div class="bg-white shadow-card rounded-sm p-4 mb-4">
+            <div class="flex items-center gap-4">
+              <div class="w-14 h-14 flex-shrink-0">
+                <img 
+                  v-if="user.profile_picture_url" 
+                  :src="user.profile_picture_url" 
+                  alt="Profile"
+                  class="w-full h-full rounded-full object-cover"
+                />
+                <div 
+                  v-else 
+                  class="w-full h-full bg-flipkart-blue text-white rounded-full 
+                         flex items-center justify-center text-2xl font-bold"
+                >
+                  {{ user.full_name.charAt(0).toUpperCase() }}
+                </div>
+              </div>
+              <div>
+                <p class="text-xs text-text-secondary">Hello,</p>
+                <p class="font-medium text-text-primary">{{ user.full_name }}</p>
+              </div>
             </div>
-            <div class="form-group">
-              <label>Document Number</label>
-              <input v-model="kycForm.document_number" type="text" required />
-            </div>
-            <button type="submit" class="btn btn-primary">Submit KYC</button>
-          </form>
-        </div>
-        
-        <div v-else class="kyc-status">
-          <div class="kyc-info">
-            <p><strong>Document Type:</strong> {{ kyc.document_type }}</p>
-            <p><strong>Document Number:</strong> {{ kyc.document_number }}</p>
-            <p><strong>Status:</strong> 
-              <span :class="'status-' + kyc.status.toLowerCase()">
-                {{ kyc.status }}
-              </span>
-            </p>
           </div>
-          
-          <div v-if="!kyc.document_image_url" class="document-upload">
-            <h4>Upload Document</h4>
-            <input 
-              type="file" 
-              accept="image/*,application/pdf" 
-              @change="handleKYCDocumentChange"
-              id="kyc-upload"
-            />
-            <label for="kyc-upload" class="btn btn-secondary">Choose Document</label>
-            <button 
-              v-if="kycDocument" 
-              @click="uploadKYCDocument" 
-              class="btn btn-primary">
-              Upload Document
+
+          <!-- Navigation -->
+          <nav class="bg-white shadow-card rounded-sm overflow-hidden">
+            <button
+              v-for="tab in tabs"
+              :key="tab.id"
+              @click="activeTab = tab.id"
+              :class="[
+                'w-full flex items-center gap-3 px-4 py-3 text-left transition-colors',
+                activeTab === tab.id 
+                  ? 'bg-flipkart-gray border-l-4 border-flipkart-blue text-flipkart-blue' 
+                  : 'text-text-primary hover:bg-flipkart-gray border-l-4 border-transparent'
+              ]"
+            >
+              <svg width="20" height="20" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path v-if="tab.icon === 'user'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                <path v-if="tab.icon === 'camera'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                <path v-if="tab.icon === 'camera'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path v-if="tab.icon === 'package'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                <path v-if="tab.icon === 'shield'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                <path v-if="tab.icon === 'crown'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M5 3l3.5 5.5L12 5l3.5 3.5L19 3v13a2 2 0 01-2 2H7a2 2 0 01-2-2V3z"/>
+              </svg>
+              <span class="text-sm font-medium">{{ tab.label }}</span>
             </button>
-          </div>
-          
-          <div v-else class="document-uploaded">
-            <p>✓ Document uploaded and under review</p>
-          </div>
-        </div>
-      </div>
+          </nav>
+        </aside>
 
-      <!-- Membership Tab -->
-      <div v-if="activeTab === 'membership'" class="tab-content card">
-        <h3>Clipkart Black Membership</h3>
-        
-        <div v-if="!user.is_black_member" class="membership-offer">
-          <div class="membership-benefits">
-            <h4>Benefits of Clipkart Black:</h4>
-            <ul>
-              <li>👑 Exclusive badge on your profile</li>
-              <li>🚚 Free express delivery on all orders</li>
-              <li>🎁 Early access to sales and offers</li>
-              <li>💎 Special discounts for members</li>
-            </ul>
+        <!-- Main Content -->
+        <main class="flex-1 min-w-0">
+          <!-- Messages -->
+          <div v-if="error" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-sm text-red-600 text-sm">
+            {{ error }}
           </div>
-          <button @click="upgradeToBlack" class="btn btn-primary btn-upgrade">
-            Upgrade to Clipkart Black
-          </button>
-        </div>
-        
-        <div v-else class="membership-active">
-          <p class="membership-message">
-            🎉 You are a Clipkart Black member!
-          </p>
-          <p>Member since: {{ new Date(user.black_member_since).toLocaleDateString() }}</p>
-        </div>
+          <div v-if="success" class="mb-4 p-3 bg-green-50 border border-flipkart-green rounded-sm text-flipkart-green text-sm">
+            {{ success }}
+          </div>
+
+          <!-- Profile Tab -->
+          <div v-if="activeTab === 'profile'" class="bg-white shadow-card rounded-sm">
+            <div class="p-4 border-b border-flipkart-gray-dark">
+              <h2 class="font-medium text-text-primary">Personal Information</h2>
+            </div>
+            <form @submit.prevent="updateProfile" class="p-6 space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label class="form-label">Full Name</label>
+                  <input v-model="profile.full_name" type="text" required class="form-input" />
+                </div>
+                <div>
+                  <label class="form-label">Email Address</label>
+                  <input :value="user.email" type="email" disabled 
+                         class="form-input bg-flipkart-gray cursor-not-allowed" />
+                </div>
+                <div>
+                  <label class="form-label">Mobile Number</label>
+                  <input v-model="profile.phone" type="tel" class="form-input" 
+                         placeholder="Enter mobile number" />
+                </div>
+              </div>
+              <div>
+                <label class="form-label">Address</label>
+                <textarea v-model="profile.address" rows="3" class="form-input resize-none"
+                          placeholder="Enter your address"></textarea>
+              </div>
+              <div class="flex items-center gap-4">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <div class="flex items-center gap-2 text-sm">
+                  <span class="text-text-secondary">Wallet Balance:</span>
+                  <span class="font-medium text-flipkart-blue">
+                    ₹{{ user.wallet_balance.toLocaleString('en-IN') }}
+                  </span>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- Picture Tab -->
+          <div v-if="activeTab === 'picture'" class="bg-white shadow-card rounded-sm">
+            <div class="p-4 border-b border-flipkart-gray-dark">
+              <h2 class="font-medium text-text-primary">Profile Picture</h2>
+            </div>
+            <div class="p-6">
+              <div class="flex items-center gap-6 mb-6">
+                <div class="w-24 h-24 flex-shrink-0">
+                  <img 
+                    v-if="profilePicturePreview || user.profile_picture_url" 
+                    :src="profilePicturePreview || user.profile_picture_url" 
+                    alt="Profile"
+                    class="w-full h-full rounded-full object-cover border-4 border-flipkart-gray"
+                  />
+                  <div 
+                    v-else 
+                    class="w-full h-full bg-flipkart-blue text-white rounded-full 
+                           flex items-center justify-center text-3xl font-bold"
+                  >
+                    {{ user.full_name.charAt(0).toUpperCase() }}
+                  </div>
+                </div>
+                <div>
+                  <input type="file" accept="image/*" @change="handleProfilePictureChange"
+                         id="picture-upload" class="hidden" />
+                  <label for="picture-upload" class="btn cursor-pointer">
+                    Choose Picture
+                  </label>
+                  <p class="text-xs text-text-secondary mt-2">
+                    Recommended: Square image, at least 200x200px
+                  </p>
+                </div>
+              </div>
+              <button v-if="profilePicture" @click="uploadProfilePicture" class="btn btn-primary">
+                Upload Picture
+              </button>
+            </div>
+          </div>
+
+          <!-- Orders Tab -->
+          <div v-if="activeTab === 'orders'" class="bg-white shadow-card rounded-sm">
+            <div class="p-4 border-b border-flipkart-gray-dark flex items-center justify-between">
+              <h2 class="font-medium text-text-primary">My Orders</h2>
+              <RouterLink to="/orders" class="text-flipkart-blue text-sm hover:underline">
+                View All Orders
+              </RouterLink>
+            </div>
+            <div class="p-6 text-center">
+              <RouterLink to="/orders" class="btn btn-primary">
+                Go to Order History
+              </RouterLink>
+            </div>
+          </div>
+
+          <!-- KYC Tab -->
+          <div v-if="activeTab === 'kyc'" class="bg-white shadow-card rounded-sm">
+            <div class="p-4 border-b border-flipkart-gray-dark">
+              <h2 class="font-medium text-text-primary">KYC Verification</h2>
+            </div>
+            <div class="p-6">
+              <div v-if="!kyc">
+                <form @submit.prevent="createKYC" class="space-y-4 max-w-md">
+                  <div>
+                    <label class="form-label">Document Type</label>
+                    <select v-model="kycForm.document_type" class="form-input">
+                      <option value="AADHAR">Aadhar Card</option>
+                      <option value="PAN">PAN Card</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="form-label">Document Number</label>
+                    <input v-model="kycForm.document_number" type="text" required class="form-input"
+                           placeholder="Enter document number" />
+                  </div>
+                  <button type="submit" class="btn btn-primary">Submit KYC</button>
+                </form>
+              </div>
+
+              <div v-else class="space-y-6">
+                <div class="flex items-center gap-4 p-4 bg-flipkart-gray rounded-sm">
+                  <div class="flex-1">
+                    <p class="text-sm text-text-secondary">Document Type</p>
+                    <p class="font-medium">{{ kyc.document_type }}</p>
+                  </div>
+                  <div class="flex-1">
+                    <p class="text-sm text-text-secondary">Document Number</p>
+                    <p class="font-medium">{{ kyc.document_number }}</p>
+                  </div>
+                  <div>
+                    <span :class="[
+                      'px-3 py-1 rounded-full text-sm font-medium',
+                      kyc.status === 'VERIFIED' ? 'bg-flipkart-green text-white' :
+                      kyc.status === 'PENDING' ? 'bg-flipkart-orange text-white' :
+                      'bg-red-500 text-white'
+                    ]">
+                      {{ kyc.status }}
+                    </span>
+                  </div>
+                </div>
+
+                <div v-if="!kyc.document_image_url">
+                  <h3 class="font-medium text-text-primary mb-3">Upload Document</h3>
+                  <input type="file" accept="image/*,application/pdf" @change="handleKYCDocumentChange"
+                         id="kyc-upload" class="hidden" />
+                  <label for="kyc-upload" class="btn cursor-pointer inline-flex items-center gap-2">
+                    <svg width="20" height="20" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                    </svg>
+                    Choose Document
+                  </label>
+                  <button v-if="kycDocument" @click="uploadKYCDocument" class="btn btn-primary ml-3">
+                    Upload
+                  </button>
+                </div>
+                <div v-else class="p-4 bg-green-50 border border-flipkart-green rounded-sm">
+                  <p class="text-flipkart-green font-medium flex items-center gap-2">
+                    <svg width="20" height="20" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
+                    </svg>
+                    Document uploaded and under review
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Membership Tab -->
+          <div v-if="activeTab === 'membership'" class="bg-white shadow-card rounded-sm">
+            <div class="p-4 border-b border-flipkart-gray-dark">
+              <h2 class="font-medium text-text-primary">Clipkart Plus Membership</h2>
+            </div>
+            <div class="p-6">
+              <div v-if="!user.is_black_member">
+                <div class="max-w-lg">
+                  <h3 class="text-xl font-medium text-text-primary mb-4">
+                    Upgrade to Clipkart Plus
+                  </h3>
+                  <ul class="space-y-3 mb-6">
+                    <li class="flex items-center gap-3">
+                      <span class="w-8 h-8 bg-flipkart-blue/10 rounded-full flex items-center 
+                                   justify-center text-flipkart-blue">
+                        <svg width="20" height="20" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M5 3l3.5 5.5L12 5l3.5 3.5L19 3v13a2 2 0 01-2 2H7a2 2 0 01-2-2V3z"/>
+                        </svg>
+                      </span>
+                      <span class="text-text-primary">Exclusive member badge</span>
+                    </li>
+                    <li class="flex items-center gap-3">
+                      <span class="w-8 h-8 bg-flipkart-blue/10 rounded-full flex items-center 
+                                   justify-center text-flipkart-blue">
+                        <svg width="20" height="20" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+                        </svg>
+                      </span>
+                      <span class="text-text-primary">Free express delivery on all orders</span>
+                    </li>
+                    <li class="flex items-center gap-3">
+                      <span class="w-8 h-8 bg-flipkart-blue/10 rounded-full flex items-center 
+                                   justify-center text-flipkart-blue">
+                        <svg width="20" height="20" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
+                        </svg>
+                      </span>
+                      <span class="text-text-primary">Early access to sales and offers</span>
+                    </li>
+                    <li class="flex items-center gap-3">
+                      <span class="w-8 h-8 bg-flipkart-blue/10 rounded-full flex items-center 
+                                   justify-center text-flipkart-blue">
+                        <svg width="20" height="20" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                      </span>
+                      <span class="text-text-primary">Special member-only discounts</span>
+                    </li>
+                  </ul>
+                  <button @click="upgradeToBlack" class="btn btn-primary btn-lg">
+                    Upgrade Now
+                  </button>
+                </div>
+              </div>
+
+              <div v-else class="text-center py-8">
+                <div class="w-20 h-20 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full 
+                            flex items-center justify-center mx-auto mb-4">
+                  <svg width="40" height="40" class="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M5 3l3.5 5.5L12 5l3.5 3.5L19 3v13a2 2 0 01-2 2H7a2 2 0 01-2-2V3z"/>
+                  </svg>
+                </div>
+                <h3 class="text-2xl font-bold text-text-primary mb-2">
+                  You're a Clipkart Plus Member!
+                </h3>
+                <p class="text-text-secondary">
+                  Member since: {{ new Date(user.black_member_since).toLocaleDateString('en-IN', {
+                    year: 'numeric', month: 'long', day: 'numeric'
+                  }) }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </main>
       </div>
     </div>
   </div>
 </template>
-
-<style scoped>
-.profile-page h1 {
-  font-size: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.loading {
-  padding: 2rem;
-  text-align: center;
-}
-
-.profile-container {
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.profile-header {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.profile-avatar img,
-.avatar-placeholder {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.avatar-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #2874f0;
-  color: white;
-  font-size: 2.5rem;
-  font-weight: 700;
-}
-
-.profile-info h2 {
-  margin: 0 0 0.25rem;
-  font-size: 1.5rem;
-}
-
-.profile-info p {
-  margin: 0 0 0.75rem;
-  color: #666;
-}
-
-.badges {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.badge-black {
-  background: #000;
-  color: #ffd700;
-}
-
-.badge-verified {
-  background: #10b981;
-  color: white;
-}
-
-.wallet-balance {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #2874f0;
-}
-
-.tabs {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-  border-bottom: 2px solid #e5e7eb;
-}
-
-.tabs button {
-  padding: 0.75rem 1.5rem;
-  background: none;
-  border: none;
-  border-bottom: 3px solid transparent;
-  cursor: pointer;
-  font-weight: 600;
-  color: #666;
-  transition: all 0.2s;
-}
-
-.tabs button.active {
-  color: #2874f0;
-  border-bottom-color: #2874f0;
-}
-
-.tab-content {
-  padding: 1.5rem;
-}
-
-.tab-content h3 {
-  margin: 0 0 1.5rem;
-  font-size: 1.2rem;
-}
-
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.form-group label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
-
-.form-group input,
-.form-group textarea,
-.form-group select {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-family: inherit;
-}
-
-.picture-upload {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  align-items: flex-start;
-}
-
-.picture-upload input[type="file"] {
-  display: none;
-}
-
-.picture-preview {
-  max-width: 200px;
-  border-radius: 8px;
-}
-
-.kyc-status {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.kyc-info p {
-  margin: 0.5rem 0;
-}
-
-.status-pending {
-  color: #f59e0b;
-  font-weight: 600;
-}
-
-.status-verified {
-  color: #10b981;
-  font-weight: 600;
-}
-
-.status-rejected {
-  color: #ef4444;
-  font-weight: 600;
-}
-
-.document-upload {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  align-items: flex-start;
-}
-
-.document-upload input[type="file"] {
-  display: none;
-}
-
-.document-uploaded {
-  padding: 1rem;
-  background: #d1fae5;
-  border-radius: 6px;
-  color: #065f46;
-  font-weight: 600;
-}
-
-.membership-offer {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.membership-benefits ul {
-  list-style: none;
-  padding: 0;
-}
-
-.membership-benefits li {
-  padding: 0.5rem 0;
-  font-size: 1rem;
-}
-
-.btn-upgrade {
-  align-self: flex-start;
-  font-size: 1rem;
-  padding: 0.75rem 2rem;
-}
-
-.membership-active {
-  text-align: center;
-  padding: 2rem;
-}
-
-.membership-message {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-bottom: 1rem;
-}
-
-.error {
-  padding: 0.75rem;
-  background: #fee;
-  color: #e53e3e;
-  border-radius: 4px;
-  margin-bottom: 1rem;
-}
-
-.success {
-  padding: 0.75rem;
-  background: #d1fae5;
-  color: #065f46;
-  border-radius: 4px;
-  margin-bottom: 1rem;
-}
-</style>
