@@ -143,6 +143,16 @@ async def process_dummy_payment(
             status="paid",
             user_id=current_user.id,
         )
+        
+        # Award cashback: 5% of order amount, capped at ₹50
+        cashback_amount = min(final_amount * 0.05, 50.0)
+        if cashback_amount > 0:
+            result = await db.execute(
+                select(User).where(User.id == current_user.id).with_for_update()
+            )
+            user = result.scalar_one()
+            user.pending_cashback += cashback_amount
+            await db.commit()
     
     return DummyPaymentResponse(
         payment_id=payment["payment_id"],

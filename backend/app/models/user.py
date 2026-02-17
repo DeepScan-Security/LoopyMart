@@ -33,6 +33,8 @@ class User(Base):
     
     # Wallet
     wallet_balance: Mapped[float] = mapped_column(Float, default=100.0, nullable=False)
+    pending_cashback: Mapped[float] = mapped_column(Float, default=50.0, nullable=False)
+    last_cashback_redeem_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     
     # Flipkart Black membership
     is_black_member: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

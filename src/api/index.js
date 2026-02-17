@@ -38,6 +38,13 @@ export const orders = {
   verifyPayment: (data) => client.post('/orders/verify-payment', data),
 }
 
+export const wallet = {
+  get: () => client.get('/wallet'),
+  redeem: () => client.post('/wallet/redeem'),
+  getFlagStore: () => client.get('/wallet/flag-store'),
+  purchaseFlag: (itemId) => client.post('/wallet/purchase-flag', { item_id: itemId }),
+}
+
 export const admin = {
   createCategory: (data) => client.post('/admin/categories', data),
   updateCategory: (id, data) => client.put(`/admin/categories/${id}`, data),
