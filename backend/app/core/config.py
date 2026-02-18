@@ -45,7 +45,7 @@ class Settings(BaseSettings):
 
     # Application settings
     app_name: str = Field(
-        default_factory=lambda: get_yaml_value(_yaml_config, "app", "name", default=os.getenv("APP_NAME", "Clipkart Clone API"))
+        default_factory=lambda: get_yaml_value(_yaml_config, "app", "name", default=os.getenv("APP_NAME", "LoopyMart"))
     )
     debug: bool = Field(
         default_factory=lambda: get_yaml_value(_yaml_config, "app", "debug", default=os.getenv("DEBUG", "false").lower() == "true")
@@ -71,7 +71,7 @@ class Settings(BaseSettings):
     mongodb_db_name: str = Field(
         default_factory=lambda: get_yaml_value(
             _yaml_config, "mongodb", "db_name",
-            default=os.getenv("MONGODB_DB_NAME", "flipkart_clone")
+            default=os.getenv("MONGODB_DB_NAME", "loopymart")
         )
     )
 

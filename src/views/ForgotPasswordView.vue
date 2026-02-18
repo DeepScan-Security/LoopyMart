@@ -76,10 +76,10 @@ async function resetPassword() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-flipkart-gray flex items-center justify-center py-8 px-4">
+  <div class="min-h-screen bg-loopymart-gray flex items-center justify-center py-8 px-4">
     <div class="w-full max-w-4xl bg-white shadow-card rounded-sm overflow-hidden flex">
       <!-- Left Panel - Blue Section -->
-      <div class="hidden md:flex w-[40%] bg-flipkart-blue p-10 flex-col justify-between">
+      <div class="hidden md:flex w-[40%] bg-loopymart-blue p-10 flex-col justify-between">
         <div>
           <h1 class="text-3xl font-bold text-white mb-4">
             {{ mode === 'request' ? 'Forgot Password?' : 'Reset Password' }}
@@ -108,7 +108,7 @@ async function resetPassword() {
         <template v-if="mode === 'request'">
           <!-- Mobile Header -->
           <div class="md:hidden text-center mb-8">
-            <h1 class="text-2xl font-bold text-flipkart-blue mb-2">Forgot Password?</h1>
+            <h1 class="text-2xl font-bold text-loopymart-blue mb-2">Forgot Password?</h1>
             <p class="text-text-secondary text-sm">
               Don't worry! We'll help you recover your account.
             </p>
@@ -116,7 +116,7 @@ async function resetPassword() {
 
           <!-- Success State -->
           <div v-if="requestSuccess" class="text-center py-8">
-            <div class="w-16 h-16 bg-flipkart-green rounded-full flex items-center justify-center 
+            <div class="w-16 h-16 bg-loopymart-green rounded-full flex items-center justify-center 
                         mx-auto mb-4">
               <svg width="32" height="32" class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
@@ -151,8 +151,8 @@ async function resetPassword() {
                 v-model="email"
                 type="email"
                 required
-                class="w-full px-0 py-2 border-0 border-b-2 border-flipkart-gray-dark 
-                       focus:border-flipkart-blue focus:ring-0 text-text-primary
+                class="w-full px-0 py-2 border-0 border-b-2 border-loopymart-gray-dark 
+                       focus:border-loopymart-blue focus:ring-0 text-text-primary
                        placeholder:text-text-hint transition-colors"
                 placeholder="Enter your registered email"
               />
@@ -169,17 +169,17 @@ async function resetPassword() {
             <button
               type="submit"
               :disabled="requestLoading"
-              class="w-full py-3 bg-flipkart-orange text-white font-medium rounded-sm
+              class="w-full py-3 bg-loopymart-orange text-white font-medium rounded-sm
                      hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               {{ requestLoading ? 'Sending...' : 'Send Reset Link' }}
             </button>
           </form>
 
-          <div v-if="!requestSuccess" class="mt-8 pt-6 border-t border-flipkart-gray-dark text-center">
+          <div v-if="!requestSuccess" class="mt-8 pt-6 border-t border-loopymart-gray-dark text-center">
             <p class="text-text-secondary">
               Remember your password? 
-              <RouterLink to="/login" class="text-flipkart-blue font-medium hover:underline">
+              <RouterLink to="/login" class="text-loopymart-blue font-medium hover:underline">
                 Login
               </RouterLink>
             </p>
@@ -190,7 +190,7 @@ async function resetPassword() {
         <template v-else>
           <!-- Mobile Header -->
           <div class="md:hidden text-center mb-8">
-            <h1 class="text-2xl font-bold text-flipkart-blue mb-2">Reset Password</h1>
+            <h1 class="text-2xl font-bold text-loopymart-blue mb-2">Reset Password</h1>
             <p class="text-text-secondary text-sm">
               Create a new secure password for your account.
             </p>
@@ -198,7 +198,7 @@ async function resetPassword() {
 
           <!-- Success State -->
           <div v-if="resetSuccess" class="text-center py-8">
-            <div class="w-16 h-16 bg-flipkart-green rounded-full flex items-center justify-center 
+            <div class="w-16 h-16 bg-loopymart-green rounded-full flex items-center justify-center 
                         mx-auto mb-4">
               <svg width="32" height="32" class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
@@ -231,8 +231,8 @@ async function resetPassword() {
                   :type="showPassword ? 'text' : 'password'"
                   required
                   minlength="6"
-                  class="w-full px-0 py-2 border-0 border-b-2 border-flipkart-gray-dark 
-                         focus:border-flipkart-blue focus:ring-0 text-text-primary
+                  class="w-full px-0 py-2 border-0 border-b-2 border-loopymart-gray-dark 
+                         focus:border-loopymart-blue focus:ring-0 text-text-primary
                          placeholder:text-text-hint transition-colors pr-10"
                   placeholder="Minimum 6 characters"
                 />
@@ -240,7 +240,7 @@ async function resetPassword() {
                   type="button"
                   @click="showPassword = !showPassword"
                   class="absolute right-0 top-1/2 -translate-y-1/2 text-text-secondary 
-                         hover:text-flipkart-blue"
+                         hover:text-loopymart-blue"
                 >
                   <svg v-if="showPassword" width="20" height="20" class="w-5 h-5" fill="none" stroke="currentColor" 
                        viewBox="0 0 24 24">
@@ -266,8 +266,8 @@ async function resetPassword() {
                 v-model="confirmPassword"
                 type="password"
                 required
-                class="w-full px-0 py-2 border-0 border-b-2 border-flipkart-gray-dark 
-                       focus:border-flipkart-blue focus:ring-0 text-text-primary
+                class="w-full px-0 py-2 border-0 border-b-2 border-loopymart-gray-dark 
+                       focus:border-loopymart-blue focus:ring-0 text-text-primary
                        placeholder:text-text-hint transition-colors"
                 placeholder="Confirm new password"
               />
@@ -284,15 +284,15 @@ async function resetPassword() {
             <button
               type="submit"
               :disabled="resetLoading"
-              class="w-full py-3 bg-flipkart-orange text-white font-medium rounded-sm
+              class="w-full py-3 bg-loopymart-orange text-white font-medium rounded-sm
                      hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               {{ resetLoading ? 'Resetting...' : 'Reset Password' }}
             </button>
           </form>
 
-          <div v-if="!resetSuccess" class="mt-8 pt-6 border-t border-flipkart-gray-dark text-center">
-            <RouterLink to="/forgot-password" class="text-flipkart-blue hover:underline">
+          <div v-if="!resetSuccess" class="mt-8 pt-6 border-t border-loopymart-gray-dark text-center">
+            <RouterLink to="/forgot-password" class="text-loopymart-blue hover:underline">
               Request new reset link
             </RouterLink>
           </div>

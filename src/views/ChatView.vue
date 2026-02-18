@@ -75,7 +75,7 @@ async function sendMessage() {
     <div v-else class="chat-container">
       <div class="messages" ref="chatContainer">
         <div v-if="messages.length === 0" class="welcome-message">
-          <h3>👋 Welcome to Clipkart!</h3>
+          <h3>👋 Welcome to LoopyMart!</h3>
           <p>How can we help you today?</p>
         </div>
         

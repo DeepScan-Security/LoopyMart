@@ -138,14 +138,14 @@ watch(() => route.query.q, (newQ) => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-flipkart-gray">
+  <div class="min-h-screen bg-loopymart-gray">
     <div class="max-w-container mx-auto px-4 py-4">
       <!-- Breadcrumb -->
       <nav class="text-sm text-text-secondary mb-4">
-        <RouterLink to="/" class="hover:text-flipkart-blue">Home</RouterLink>
+        <RouterLink to="/" class="hover:text-loopymart-blue">Home</RouterLink>
         <span class="mx-2">&gt;</span>
         <span v-if="activeCategory">
-          <RouterLink to="/products" class="hover:text-flipkart-blue">Products</RouterLink>
+          <RouterLink to="/products" class="hover:text-loopymart-blue">Products</RouterLink>
           <span class="mx-2">&gt;</span>
           <span class="text-text-primary">{{ activeCategory.name }}</span>
         </span>
@@ -157,18 +157,18 @@ watch(() => route.query.q, (newQ) => {
         <aside class="hidden md:block w-64 flex-shrink-0">
           <div class="bg-white shadow-card rounded-sm sticky top-32">
             <!-- Filters Header -->
-            <div class="flex items-center justify-between p-4 border-b border-flipkart-gray-dark">
+            <div class="flex items-center justify-between p-4 border-b border-loopymart-gray-dark">
               <h2 class="font-semibold text-text-primary">Filters</h2>
               <button 
                 @click="clearFilters"
-                class="text-sm text-flipkart-blue hover:underline"
+                class="text-sm text-loopymart-blue hover:underline"
               >
                 Clear All
               </button>
             </div>
 
             <!-- Categories -->
-            <div class="p-4 border-b border-flipkart-gray-dark">
+            <div class="p-4 border-b border-loopymart-gray-dark">
               <h3 class="font-medium text-text-primary text-sm mb-3 uppercase tracking-wide">
                 Categories
               </h3>
@@ -178,7 +178,7 @@ watch(() => route.query.q, (newQ) => {
                     @click="selectCategory('')"
                     :class="[
                       'text-sm w-full text-left py-1 transition-colors',
-                      !selectedCategory ? 'text-flipkart-blue font-medium' : 'text-text-primary hover:text-flipkart-blue'
+                      !selectedCategory ? 'text-loopymart-blue font-medium' : 'text-text-primary hover:text-loopymart-blue'
                     ]"
                   >
                     All Categories
@@ -189,7 +189,7 @@ watch(() => route.query.q, (newQ) => {
                     @click="selectCategory(cat.slug)"
                     :class="[
                       'text-sm w-full text-left py-1 transition-colors',
-                      selectedCategory === cat.slug ? 'text-flipkart-blue font-medium' : 'text-text-primary hover:text-flipkart-blue'
+                      selectedCategory === cat.slug ? 'text-loopymart-blue font-medium' : 'text-text-primary hover:text-loopymart-blue'
                     ]"
                   >
                     {{ cat.name }}
@@ -199,7 +199,7 @@ watch(() => route.query.q, (newQ) => {
             </div>
 
             <!-- Price Range -->
-            <div class="p-4 border-b border-flipkart-gray-dark">
+            <div class="p-4 border-b border-loopymart-gray-dark">
               <h3 class="font-medium text-text-primary text-sm mb-3 uppercase tracking-wide">
                 Price
               </h3>
@@ -211,7 +211,7 @@ watch(() => route.query.q, (newQ) => {
                       name="price"
                       :checked="priceRange.min === range.min && priceRange.max === range.max"
                       @change="priceRange = { min: range.min, max: range.max }"
-                      class="text-flipkart-blue focus:ring-flipkart-blue"
+                      class="text-loopymart-blue focus:ring-flipkart-blue"
                     />
                     <span class="text-sm text-text-primary">{{ range.label }}</span>
                   </label>
@@ -232,11 +232,11 @@ watch(() => route.query.q, (newQ) => {
                       name="rating"
                       :checked="selectedRating === rating"
                       @change="selectedRating = rating"
-                      class="text-flipkart-blue focus:ring-flipkart-blue"
+                      class="text-loopymart-blue focus:ring-flipkart-blue"
                     />
                     <span class="flex items-center gap-1 text-sm text-text-primary">
                       {{ rating }}
-                      <svg width="12" height="12" class="w-3 h-3 text-flipkart-orange" fill="currentColor" viewBox="0 0 20 20">
+                      <svg width="12" height="12" class="w-3 h-3 text-loopymart-orange" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                       </svg>
                       & above
@@ -325,7 +325,7 @@ watch(() => route.query.q, (newQ) => {
 
           <!-- Loading State -->
           <div v-if="loading" class="bg-white shadow-card rounded-sm p-12 text-center">
-            <div class="inline-block w-8 h-8 border-4 border-flipkart-blue border-t-transparent 
+            <div class="inline-block w-8 h-8 border-4 border-loopymart-blue border-t-transparent 
                         rounded-full animate-spin"></div>
             <p class="mt-4 text-text-secondary">Loading products...</p>
           </div>
@@ -375,11 +375,11 @@ watch(() => route.query.q, (newQ) => {
         <!-- Drawer -->
         <div class="absolute inset-y-0 left-0 w-80 max-w-full bg-white shadow-xl animate-slideIn">
           <!-- Header -->
-          <div class="flex items-center justify-between p-4 border-b border-flipkart-gray-dark">
+          <div class="flex items-center justify-between p-4 border-b border-loopymart-gray-dark">
             <h2 class="font-semibold text-text-primary">Filters</h2>
             <button 
               @click="showMobileFilters = false"
-              class="p-1 hover:bg-flipkart-gray rounded-full"
+              class="p-1 hover:bg-loopymart-gray rounded-full"
             >
               <svg width="24" height="24" class="w-6 h-6 text-text-secondary" fill="none" stroke="currentColor" 
                    viewBox="0 0 24 24">
@@ -392,7 +392,7 @@ watch(() => route.query.q, (newQ) => {
           <!-- Filter Content -->
           <div class="overflow-y-auto h-[calc(100%-120px)]">
             <!-- Categories -->
-            <div class="p-4 border-b border-flipkart-gray-dark">
+            <div class="p-4 border-b border-loopymart-gray-dark">
               <h3 class="font-medium text-text-primary text-sm mb-3 uppercase">Categories</h3>
               <ul class="space-y-2">
                 <li>
@@ -400,7 +400,7 @@ watch(() => route.query.q, (newQ) => {
                     @click="selectCategory(''); showMobileFilters = false"
                     :class="[
                       'text-sm w-full text-left py-1',
-                      !selectedCategory ? 'text-flipkart-blue font-medium' : 'text-text-primary'
+                      !selectedCategory ? 'text-loopymart-blue font-medium' : 'text-text-primary'
                     ]"
                   >
                     All Categories
@@ -411,7 +411,7 @@ watch(() => route.query.q, (newQ) => {
                     @click="selectCategory(cat.slug); showMobileFilters = false"
                     :class="[
                       'text-sm w-full text-left py-1',
-                      selectedCategory === cat.slug ? 'text-flipkart-blue font-medium' : 'text-text-primary'
+                      selectedCategory === cat.slug ? 'text-loopymart-blue font-medium' : 'text-text-primary'
                     ]"
                   >
                     {{ cat.name }}
@@ -440,7 +440,7 @@ watch(() => route.query.q, (newQ) => {
           </div>
 
           <!-- Footer -->
-          <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-flipkart-gray-dark bg-white">
+          <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-loopymart-gray-dark bg-white">
             <div class="flex gap-3">
               <button 
                 @click="clearFilters(); showMobileFilters = false"

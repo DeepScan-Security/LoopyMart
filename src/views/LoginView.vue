@@ -36,10 +36,10 @@ async function submit() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-flipkart-gray flex items-center justify-center py-8 px-4">
+  <div class="min-h-screen bg-loopymart-gray flex items-center justify-center py-8 px-4">
     <div class="w-full max-w-4xl bg-white shadow-card rounded-sm overflow-hidden flex">
       <!-- Left Panel - Blue Section -->
-      <div class="hidden md:flex w-[40%] bg-flipkart-blue p-10 flex-col justify-between">
+      <div class="hidden md:flex w-[40%] bg-loopymart-blue p-10 flex-col justify-between">
         <div>
           <h1 class="text-3xl font-bold text-white mb-4">Login</h1>
           <p class="text-white/80 text-lg leading-relaxed">
@@ -58,7 +58,7 @@ async function submit() {
       <div class="flex-1 p-8 md:p-10">
         <!-- Mobile Header -->
         <div class="md:hidden text-center mb-8">
-          <h1 class="text-2xl font-bold text-flipkart-blue mb-2">Login</h1>
+          <h1 class="text-2xl font-bold text-loopymart-blue mb-2">Login</h1>
           <p class="text-text-secondary text-sm">
             Get access to your Orders, Wishlist and Recommendations
           </p>
@@ -75,8 +75,8 @@ async function submit() {
               v-model="email"
               type="email"
               required
-              class="w-full px-0 py-2 border-0 border-b-2 border-flipkart-gray-dark 
-                     focus:border-flipkart-blue focus:ring-0 text-text-primary
+              class="w-full px-0 py-2 border-0 border-b-2 border-loopymart-gray-dark 
+                     focus:border-loopymart-blue focus:ring-0 text-text-primary
                      placeholder:text-text-hint transition-colors"
               placeholder="Enter your email"
             />
@@ -93,8 +93,8 @@ async function submit() {
                 v-model="password"
                 :type="showPassword ? 'text' : 'password'"
                 required
-                class="w-full px-0 py-2 border-0 border-b-2 border-flipkart-gray-dark 
-                       focus:border-flipkart-blue focus:ring-0 text-text-primary
+                class="w-full px-0 py-2 border-0 border-b-2 border-loopymart-gray-dark 
+                       focus:border-loopymart-blue focus:ring-0 text-text-primary
                        placeholder:text-text-hint transition-colors pr-10"
                 placeholder="Enter your password"
               />
@@ -102,7 +102,7 @@ async function submit() {
                 type="button"
                 @click="showPassword = !showPassword"
                 class="absolute right-0 top-1/2 -translate-y-1/2 text-text-secondary 
-                       hover:text-flipkart-blue"
+                       hover:text-loopymart-blue"
               >
                 <svg v-if="showPassword" width="20" height="20" class="w-5 h-5" fill="none" stroke="currentColor" 
                      viewBox="0 0 24 24">
@@ -121,9 +121,9 @@ async function submit() {
 
           <!-- Terms Text -->
           <p class="text-xs text-text-secondary">
-            By continuing, you agree to Clipkart's 
-            <a href="#" class="text-flipkart-blue hover:underline">Terms of Use</a> and 
-            <a href="#" class="text-flipkart-blue hover:underline">Privacy Policy</a>.
+            By continuing, you agree to LoopyMart's 
+            <a href="#" class="text-loopymart-blue hover:underline">Terms of Use</a> and 
+            <a href="#" class="text-loopymart-blue hover:underline">Privacy Policy</a>.
           </p>
 
           <!-- Error Message -->
@@ -138,7 +138,7 @@ async function submit() {
           <button
             type="submit"
             :disabled="loading"
-            class="w-full py-3 bg-flipkart-orange text-white font-medium rounded-sm
+            class="w-full py-3 bg-loopymart-orange text-white font-medium rounded-sm
                    hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {{ loading ? 'Logging in...' : 'Login' }}
@@ -147,7 +147,7 @@ async function submit() {
           <!-- OR Divider -->
           <div class="relative">
             <div class="absolute inset-0 flex items-center">
-              <div class="w-full border-t border-flipkart-gray-dark"></div>
+              <div class="w-full border-t border-loopymart-gray-dark"></div>
             </div>
             <div class="relative flex justify-center text-sm">
               <span class="px-4 bg-white text-text-secondary">OR</span>
@@ -157,8 +157,8 @@ async function submit() {
           <!-- OTP Login (Demo) -->
           <button
             type="button"
-            class="w-full py-3 border border-flipkart-gray-dark text-flipkart-blue 
-                   font-medium rounded-sm hover:bg-flipkart-gray transition-colors"
+            class="w-full py-3 border border-loopymart-gray-dark text-loopymart-blue 
+                   font-medium rounded-sm hover:bg-loopymart-gray transition-colors"
           >
             Request OTP
           </button>
@@ -167,7 +167,7 @@ async function submit() {
           <div class="text-center">
             <RouterLink 
               to="/forgot-password" 
-              class="text-sm text-flipkart-blue hover:underline"
+              class="text-sm text-loopymart-blue hover:underline"
             >
               Forgot Password?
             </RouterLink>
@@ -175,12 +175,12 @@ async function submit() {
         </form>
 
         <!-- Register Link -->
-        <div class="mt-8 pt-6 border-t border-flipkart-gray-dark text-center">
+        <div class="mt-8 pt-6 border-t border-loopymart-gray-dark text-center">
           <p class="text-text-secondary">
-            New to Clipkart? 
+            New to LoopyMart? 
             <RouterLink 
               to="/register" 
-              class="text-flipkart-blue font-medium hover:underline"
+              class="text-loopymart-blue font-medium hover:underline"
             >
               Create an account
             </RouterLink>

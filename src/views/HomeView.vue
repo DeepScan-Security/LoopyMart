@@ -44,7 +44,7 @@ const trendingProducts = computed(() => allProducts.value.slice(0, 12))
 
     <!-- Loading State -->
     <div v-if="loading" class="py-20 text-center">
-      <div class="inline-block w-8 h-8 border-4 border-flipkart-blue border-t-transparent 
+      <div class="inline-block w-8 h-8 border-4 border-loopymart-blue border-t-transparent 
                   rounded-full animate-spin"></div>
       <p class="mt-4 text-text-secondary">Loading products...</p>
     </div>
@@ -64,7 +64,7 @@ const trendingProducts = computed(() => allProducts.value.slice(0, 12))
       <section class="mt-2.5 bg-white shadow-sm">
         <div class="flex flex-col md:flex-row">
           <!-- Left Panel -->
-          <div class="md:w-64 p-6 bg-flipkart-blue flex flex-col justify-center items-center 
+          <div class="md:w-64 p-6 bg-loopymart-blue flex flex-col justify-center items-center 
                       text-white text-center">
             <h2 class="text-xl font-semibold mb-2">Deal of the Day</h2>
             <div class="flex items-center gap-2 text-sm mb-4">
@@ -76,7 +76,7 @@ const trendingProducts = computed(() => allProducts.value.slice(0, 12))
             </div>
             <RouterLink 
               to="/products"
-              class="px-6 py-2 bg-white text-flipkart-blue font-medium rounded-sm
+              class="px-6 py-2 bg-white text-loopymart-blue font-medium rounded-sm
                      hover:bg-gray-100 transition-colors"
             >
               View All
@@ -113,16 +113,16 @@ const trendingProducts = computed(() => allProducts.value.slice(0, 12))
             v-for="category in categoryList"
             :key="category.id"
             :to="{ name: 'Products', query: { category: category.slug } }"
-            class="flex flex-col items-center p-4 rounded-sm border border-flipkart-gray-dark
-                   hover:border-flipkart-blue hover:shadow-card transition-all group"
+            class="flex flex-col items-center p-4 rounded-sm border border-loopymart-gray-dark
+                   hover:border-loopymart-blue hover:shadow-card transition-all group"
           >
-            <div class="w-16 h-16 mb-3 bg-flipkart-gray rounded-full flex items-center 
-                        justify-center text-2xl font-bold text-flipkart-blue
-                        group-hover:bg-flipkart-blue group-hover:text-white transition-colors">
+            <div class="w-16 h-16 mb-3 bg-loopymart-gray rounded-full flex items-center 
+                        justify-center text-2xl font-bold text-loopymart-blue
+                        group-hover:bg-loopymart-blue group-hover:text-white transition-colors">
               {{ category.name?.charAt(0) }}
             </div>
             <span class="text-sm font-medium text-text-primary text-center
-                         group-hover:text-flipkart-blue transition-colors">
+                         group-hover:text-loopymart-blue transition-colors">
               {{ category.name }}
             </span>
           </RouterLink>
@@ -145,7 +145,7 @@ const trendingProducts = computed(() => allProducts.value.slice(0, 12))
           <h2 class="section-title">Trending Now</h2>
           <RouterLink 
             to="/products"
-            class="text-flipkart-blue text-sm font-medium hover:underline"
+            class="text-loopymart-blue text-sm font-medium hover:underline"
           >
             View All
           </RouterLink>
@@ -188,16 +188,16 @@ const trendingProducts = computed(() => allProducts.value.slice(0, 12))
         </div>
       </section>
 
-      <!-- Why Clipkart Section -->
+      <!-- Why LoopyMart Section -->
       <section class="mt-2.5 bg-white shadow-sm p-8">
         <h2 class="text-xl font-semibold text-text-primary text-center mb-8">
-          Why Shop with Clipkart?
+          Why Shop with LoopyMart?
         </h2>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
           <div class="flex flex-col items-center text-center">
-            <div class="w-16 h-16 mb-4 bg-flipkart-gray rounded-full flex items-center 
+            <div class="w-16 h-16 mb-4 bg-loopymart-gray rounded-full flex items-center 
                         justify-center">
-              <svg width="32" height="32" class="w-8 h-8 text-flipkart-blue" fill="none" stroke="currentColor" 
+              <svg width="32" height="32" class="w-8 h-8 text-loopymart-blue" fill="none" stroke="currentColor" 
                    viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                       d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
@@ -207,9 +207,9 @@ const trendingProducts = computed(() => allProducts.value.slice(0, 12))
             <p class="text-sm text-text-secondary">100% secure payments</p>
           </div>
           <div class="flex flex-col items-center text-center">
-            <div class="w-16 h-16 mb-4 bg-flipkart-gray rounded-full flex items-center 
+            <div class="w-16 h-16 mb-4 bg-loopymart-gray rounded-full flex items-center 
                         justify-center">
-              <svg width="32" height="32" class="w-8 h-8 text-flipkart-blue" fill="none" stroke="currentColor" 
+              <svg width="32" height="32" class="w-8 h-8 text-loopymart-blue" fill="none" stroke="currentColor" 
                    viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                       d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
@@ -219,9 +219,9 @@ const trendingProducts = computed(() => allProducts.value.slice(0, 12))
             <p class="text-sm text-text-secondary">On orders above ₹499</p>
           </div>
           <div class="flex flex-col items-center text-center">
-            <div class="w-16 h-16 mb-4 bg-flipkart-gray rounded-full flex items-center 
+            <div class="w-16 h-16 mb-4 bg-loopymart-gray rounded-full flex items-center 
                         justify-center">
-              <svg width="32" height="32" class="w-8 h-8 text-flipkart-blue" fill="none" stroke="currentColor" 
+              <svg width="32" height="32" class="w-8 h-8 text-loopymart-blue" fill="none" stroke="currentColor" 
                    viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                       d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -231,9 +231,9 @@ const trendingProducts = computed(() => allProducts.value.slice(0, 12))
             <p class="text-sm text-text-secondary">7 day return policy</p>
           </div>
           <div class="flex flex-col items-center text-center">
-            <div class="w-16 h-16 mb-4 bg-flipkart-gray rounded-full flex items-center 
+            <div class="w-16 h-16 mb-4 bg-loopymart-gray rounded-full flex items-center 
                         justify-center">
-              <svg width="32" height="32" class="w-8 h-8 text-flipkart-blue" fill="none" stroke="currentColor" 
+              <svg width="32" height="32" class="w-8 h-8 text-loopymart-blue" fill="none" stroke="currentColor" 
                    viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                       d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>

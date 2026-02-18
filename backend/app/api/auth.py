@@ -245,7 +245,7 @@ async def upgrade_to_black(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> UserResponse:
-    """Upgrade to Flipkart Black membership (dummy payment)."""
+    """Upgrade to LoopyMart Premium membership (dummy payment)."""
     if current_user.is_black_member:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

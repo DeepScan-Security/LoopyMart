@@ -74,11 +74,11 @@ async function remove(item) {
 </script>
 
 <template>
-  <div class="min-h-screen bg-flipkart-gray py-4">
+  <div class="min-h-screen bg-loopymart-gray py-4">
     <div class="max-w-container mx-auto px-4">
       <!-- Loading State -->
       <div v-if="loading" class="bg-white shadow-card rounded-sm p-12 text-center">
-        <div class="inline-block w-8 h-8 border-4 border-flipkart-blue border-t-transparent 
+        <div class="inline-block w-8 h-8 border-4 border-loopymart-blue border-t-transparent 
                     rounded-full animate-spin"></div>
         <p class="mt-4 text-text-secondary">Loading your cart...</p>
       </div>
@@ -103,14 +103,14 @@ async function remove(item) {
         <div class="flex-1 min-w-0">
           <!-- Cart Header -->
           <div class="bg-white shadow-card rounded-sm mb-2">
-            <div class="p-4 border-b border-flipkart-gray-dark">
+            <div class="p-4 border-b border-loopymart-gray-dark">
               <h1 class="text-lg font-medium text-text-primary">
                 My Cart ({{ totalItems }} {{ totalItems === 1 ? 'item' : 'items' }})
               </h1>
             </div>
 
             <!-- Delivery Location -->
-            <div class="p-4 flex items-center gap-3 border-b border-flipkart-gray-dark">
+            <div class="p-4 flex items-center gap-3 border-b border-loopymart-gray-dark">
               <svg width="20" height="20" class="w-5 h-5 text-text-secondary" fill="none" stroke="currentColor" 
                    viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
@@ -121,7 +121,7 @@ async function remove(item) {
               <span class="text-sm text-text-primary">
                 Deliver to: <span class="font-medium">Your Location</span>
               </span>
-              <button class="ml-auto text-sm text-flipkart-blue font-medium hover:underline">
+              <button class="ml-auto text-sm text-loopymart-blue font-medium hover:underline">
                 Change
               </button>
             </div>
@@ -134,14 +134,14 @@ async function remove(item) {
               :key="item.id"
               :class="[
                 'p-4',
-                index !== items.length - 1 ? 'border-b border-flipkart-gray-dark' : ''
+                index !== items.length - 1 ? 'border-b border-loopymart-gray-dark' : ''
               ]"
             >
               <div class="flex gap-4">
                 <!-- Product Image -->
                 <RouterLink 
                   :to="{ name: 'ProductDetail', params: { id: item.product_id } }"
-                  class="w-28 h-28 flex-shrink-0 bg-white border border-flipkart-gray-dark 
+                  class="w-28 h-28 flex-shrink-0 bg-white border border-loopymart-gray-dark 
                          rounded-sm p-2"
                 >
                   <img
@@ -155,14 +155,14 @@ async function remove(item) {
                 <div class="flex-1 min-w-0">
                   <RouterLink 
                     :to="{ name: 'ProductDetail', params: { id: item.product_id } }"
-                    class="text-text-primary hover:text-flipkart-blue transition-colors"
+                    class="text-text-primary hover:text-loopymart-blue transition-colors"
                   >
                     <h3 class="font-medium line-clamp-2">{{ item.product_name }}</h3>
                   </RouterLink>
 
                   <!-- Seller Info -->
                   <p class="text-xs text-text-secondary mt-1">
-                    Seller: Clipkart
+                    Seller: LoopyMart
                     <span class="ml-1 inline-flex items-center">
                       <svg width="40" height="12" class="w-10 h-3" viewBox="0 0 40 12">
                         <rect width="40" height="12" rx="2" fill="#2874f0"/>
@@ -179,7 +179,7 @@ async function remove(item) {
                     <span class="text-sm text-text-secondary line-through">
                       ₹{{ Math.round(item.product_price * 1.3).toLocaleString('en-IN') }}
                     </span>
-                    <span class="text-sm text-flipkart-green font-medium">
+                    <span class="text-sm text-loopymart-green font-medium">
                       23% off
                     </span>
                   </div>
@@ -187,7 +187,7 @@ async function remove(item) {
                   <!-- Delivery Info -->
                   <p class="text-xs text-text-secondary mt-2">
                     Delivery by Tomorrow | 
-                    <span class="text-flipkart-green">Free</span>
+                    <span class="text-loopymart-green">Free</span>
                   </p>
                 </div>
               </div>
@@ -200,7 +200,7 @@ async function remove(item) {
                     @click="updateQty(item, -1)"
                     :disabled="updating === item.id || item.quantity <= 1"
                     class="w-8 h-8 flex items-center justify-center rounded-full border 
-                           border-flipkart-gray-dark hover:border-flipkart-blue 
+                           border-loopymart-gray-dark hover:border-loopymart-blue 
                            disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     <svg width="16" height="16" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -214,7 +214,7 @@ async function remove(item) {
                     @click="updateQty(item, 1)"
                     :disabled="updating === item.id || item.quantity >= item.product_stock"
                     class="w-8 h-8 flex items-center justify-center rounded-full border 
-                           border-flipkart-gray-dark hover:border-flipkart-blue 
+                           border-loopymart-gray-dark hover:border-loopymart-blue 
                            disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     <svg width="16" height="16" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -224,7 +224,7 @@ async function remove(item) {
                 </div>
 
                 <!-- Save for Later -->
-                <button class="text-sm font-medium text-text-primary uppercase hover:text-flipkart-blue 
+                <button class="text-sm font-medium text-text-primary uppercase hover:text-loopymart-blue 
                                transition-colors">
                   Save for Later
                 </button>
@@ -242,10 +242,10 @@ async function remove(item) {
             </div>
 
             <!-- Place Order Button (Mobile) -->
-            <div class="p-4 border-t border-flipkart-gray-dark lg:hidden">
+            <div class="p-4 border-t border-loopymart-gray-dark lg:hidden">
               <RouterLink
                 to="/checkout"
-                class="block w-full py-3 bg-flipkart-orange text-white text-center 
+                class="block w-full py-3 bg-loopymart-orange text-white text-center 
                        font-medium rounded-sm hover:opacity-90 transition-opacity"
               >
                 Place Order
@@ -257,7 +257,7 @@ async function remove(item) {
         <!-- Right Column - Price Summary -->
         <div class="lg:w-96 flex-shrink-0">
           <div class="bg-white shadow-card rounded-sm sticky top-32">
-            <div class="p-4 border-b border-flipkart-gray-dark">
+            <div class="p-4 border-b border-loopymart-gray-dark">
               <h2 class="text-text-secondary font-medium uppercase text-sm">Price Details</h2>
             </div>
 
@@ -272,17 +272,17 @@ async function remove(item) {
 
               <div class="flex justify-between text-sm">
                 <span class="text-text-primary">Discount</span>
-                <span class="text-flipkart-green">− ₹{{ discount.toLocaleString('en-IN') }}</span>
+                <span class="text-loopymart-green">− ₹{{ discount.toLocaleString('en-IN') }}</span>
               </div>
 
               <div class="flex justify-between text-sm">
                 <span class="text-text-primary">Delivery Charges</span>
-                <span v-if="deliveryCharges === 0" class="text-flipkart-green">FREE</span>
+                <span v-if="deliveryCharges === 0" class="text-loopymart-green">FREE</span>
                 <span v-else class="text-text-primary">₹{{ deliveryCharges }}</span>
               </div>
 
               <!-- Total -->
-              <div class="pt-3 border-t border-dashed border-flipkart-gray-dark">
+              <div class="pt-3 border-t border-dashed border-loopymart-gray-dark">
                 <div class="flex justify-between">
                   <span class="font-medium text-text-primary">Total Amount</span>
                   <span class="font-medium text-text-primary">₹{{ total.toLocaleString('en-IN') }}</span>
@@ -291,17 +291,17 @@ async function remove(item) {
 
               <!-- Savings Message -->
               <div class="pt-3">
-                <p class="text-sm text-flipkart-green font-medium">
+                <p class="text-sm text-loopymart-green font-medium">
                   You will save ₹{{ discount.toLocaleString('en-IN') }} on this order
                 </p>
               </div>
             </div>
 
             <!-- Place Order Button -->
-            <div class="p-4 border-t border-flipkart-gray-dark hidden lg:block">
+            <div class="p-4 border-t border-loopymart-gray-dark hidden lg:block">
               <RouterLink
                 to="/checkout"
-                class="block w-full py-3 bg-flipkart-orange text-white text-center 
+                class="block w-full py-3 bg-loopymart-orange text-white text-center 
                        font-medium rounded-sm hover:opacity-90 transition-opacity"
               >
                 Place Order

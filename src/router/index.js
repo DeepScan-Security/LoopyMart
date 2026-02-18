@@ -23,7 +23,7 @@ const router = createRouter({
 })
 
 router.beforeEach((to, _from, next) => {
-  document.title = to.meta.title ? `${to.meta.title} | Clipkart` : 'Clipkart'
+  document.title = to.meta.title ? `${to.meta.title} | LoopyMart` : 'LoopyMart'
   const token = localStorage.getItem('token')
   const user = JSON.parse(localStorage.getItem('user') || 'null')
   const isAdmin = user?.is_admin === true

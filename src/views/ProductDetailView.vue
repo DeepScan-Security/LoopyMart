@@ -170,11 +170,11 @@ function getRatingBarWidth(stars) {
 </script>
 
 <template>
-  <div class="min-h-screen bg-flipkart-gray py-4">
+  <div class="min-h-screen bg-loopymart-gray py-4">
     <div class="max-w-container mx-auto px-4">
       <!-- Loading State -->
       <div v-if="loading" class="bg-white shadow-card rounded-sm p-12 text-center">
-        <div class="inline-block w-8 h-8 border-4 border-flipkart-blue border-t-transparent 
+        <div class="inline-block w-8 h-8 border-4 border-loopymart-blue border-t-transparent 
                     rounded-full animate-spin"></div>
         <p class="mt-4 text-text-secondary">Loading product...</p>
       </div>
@@ -194,9 +194,9 @@ function getRatingBarWidth(stars) {
       <template v-else>
         <!-- Breadcrumb -->
         <nav class="text-sm text-text-secondary mb-4">
-          <RouterLink to="/" class="hover:text-flipkart-blue">Home</RouterLink>
+          <RouterLink to="/" class="hover:text-loopymart-blue">Home</RouterLink>
           <span class="mx-2">&gt;</span>
-          <RouterLink to="/products" class="hover:text-flipkart-blue">Products</RouterLink>
+          <RouterLink to="/products" class="hover:text-loopymart-blue">Products</RouterLink>
           <span class="mx-2">&gt;</span>
           <span class="text-text-primary">{{ product.name }}</span>
         </nav>
@@ -216,8 +216,8 @@ function getRatingBarWidth(stars) {
                 </div>
                 <!-- Wishlist Button -->
                 <button class="absolute top-4 right-4 w-10 h-10 flex items-center justify-center 
-                               rounded-full border border-flipkart-gray-dark bg-white 
-                               hover:border-flipkart-blue transition-colors">
+                               rounded-full border border-loopymart-gray-dark bg-white 
+                               hover:border-loopymart-blue transition-colors">
                   <svg width="20" height="20" class="w-5 h-5 text-text-secondary hover:text-red-500" 
                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
@@ -235,8 +235,8 @@ function getRatingBarWidth(stars) {
                   :class="[
                     'w-16 h-16 flex-shrink-0 border rounded-sm p-1 transition-colors',
                     selectedImage === index 
-                      ? 'border-flipkart-blue' 
-                      : 'border-flipkart-gray-dark hover:border-flipkart-blue'
+                      ? 'border-loopymart-blue' 
+                      : 'border-loopymart-gray-dark hover:border-loopymart-blue'
                   ]"
                 >
                   <img
@@ -248,11 +248,11 @@ function getRatingBarWidth(stars) {
               </div>
 
               <!-- Action Buttons -->
-              <div class="flex gap-3 p-4 border-t border-flipkart-gray-dark">
+              <div class="flex gap-3 p-4 border-t border-loopymart-gray-dark">
                 <button
                   @click="addToCart"
                   :disabled="adding || product.stock < 1"
-                  class="flex-1 btn btn-lg bg-flipkart-orange text-white border-flipkart-orange 
+                  class="flex-1 btn btn-lg bg-loopymart-orange text-white border-loopymart-orange 
                          hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   <svg width="20" height="20" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -279,7 +279,7 @@ function getRatingBarWidth(stars) {
                 :class="[
                   'mx-4 mb-4 p-3 rounded-sm text-sm',
                   messageType === 'success' 
-                    ? 'bg-green-50 text-flipkart-green' 
+                    ? 'bg-green-50 text-loopymart-green' 
                     : 'bg-red-50 text-red-600'
                 ]"
               >
@@ -300,7 +300,7 @@ function getRatingBarWidth(stars) {
               <div class="flex items-center gap-3 mb-4">
                 <span 
                   v-if="ratingStats"
-                  class="inline-flex items-center gap-1 px-2 py-0.5 bg-flipkart-green 
+                  class="inline-flex items-center gap-1 px-2 py-0.5 bg-loopymart-green 
                          text-white text-sm font-medium rounded-sm"
                 >
                   {{ averageRating }}
@@ -320,54 +320,54 @@ function getRatingBarWidth(stars) {
               </div>
 
               <!-- Price Section -->
-              <div class="py-4 border-t border-flipkart-gray-dark">
+              <div class="py-4 border-t border-loopymart-gray-dark">
                 <div class="flex items-baseline gap-3">
                   <span class="text-3xl font-medium text-text-primary">{{ displayPrice }}</span>
                   <span class="text-lg text-text-secondary line-through">{{ originalPrice }}</span>
-                  <span class="text-lg text-flipkart-green font-medium">
+                  <span class="text-lg text-loopymart-green font-medium">
                     {{ discountPercent }}% off
                   </span>
                 </div>
-                <p class="text-sm text-flipkart-green mt-1">inclusive of all taxes</p>
+                <p class="text-sm text-loopymart-green mt-1">inclusive of all taxes</p>
               </div>
 
               <!-- Offers -->
-              <div class="py-4 border-t border-flipkart-gray-dark">
+              <div class="py-4 border-t border-loopymart-gray-dark">
                 <h3 class="font-medium text-text-primary mb-3">Available Offers</h3>
                 <ul class="space-y-2">
                   <li class="flex items-start gap-2 text-sm">
-                    <svg width="16" height="16" class="w-4 h-4 text-flipkart-green flex-shrink-0 mt-0.5" 
+                    <svg width="16" height="16" class="w-4 h-4 text-loopymart-green flex-shrink-0 mt-0.5" 
                          fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z"/>
                     </svg>
                     <span><strong>Bank Offer:</strong> 10% off on HDFC Bank Credit Card EMI</span>
                   </li>
                   <li class="flex items-start gap-2 text-sm">
-                    <svg width="16" height="16" class="w-4 h-4 text-flipkart-green flex-shrink-0 mt-0.5" 
+                    <svg width="16" height="16" class="w-4 h-4 text-loopymart-green flex-shrink-0 mt-0.5" 
                          fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z"/>
                     </svg>
                     <span><strong>Special Price:</strong> Get extra 5% off (price inclusive)</span>
                   </li>
                   <li class="flex items-start gap-2 text-sm">
-                    <svg width="16" height="16" class="w-4 h-4 text-flipkart-green flex-shrink-0 mt-0.5" 
+                    <svg width="16" height="16" class="w-4 h-4 text-loopymart-green flex-shrink-0 mt-0.5" 
                          fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z"/>
                     </svg>
-                    <span><strong>Partner Offer:</strong> Sign up for Clipkart Pay Later & get free gift</span>
+                    <span><strong>Partner Offer:</strong> Sign up for LoopyMart Pay Later & get free gift</span>
                   </li>
                 </ul>
               </div>
 
               <!-- Quantity Selector -->
-              <div class="py-4 border-t border-flipkart-gray-dark">
+              <div class="py-4 border-t border-loopymart-gray-dark">
                 <div class="flex items-center gap-4">
                   <label class="text-sm text-text-secondary">Quantity:</label>
-                  <div class="flex items-center border border-flipkart-gray-dark rounded-sm">
+                  <div class="flex items-center border border-loopymart-gray-dark rounded-sm">
                     <button
                       @click="quantity = Math.max(1, quantity - 1)"
                       class="w-10 h-10 flex items-center justify-center text-text-primary 
-                             hover:bg-flipkart-gray transition-colors"
+                             hover:bg-loopymart-gray transition-colors"
                     >
                       <svg width="16" height="16" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
@@ -378,13 +378,13 @@ function getRatingBarWidth(stars) {
                       type="number"
                       min="1"
                       :max="maxQty"
-                      class="w-16 h-10 text-center border-x border-flipkart-gray-dark text-sm
+                      class="w-16 h-10 text-center border-x border-loopymart-gray-dark text-sm
                              focus:outline-none"
                     />
                     <button
                       @click="quantity = Math.min(maxQty, quantity + 1)"
                       class="w-10 h-10 flex items-center justify-center text-text-primary 
-                             hover:bg-flipkart-gray transition-colors"
+                             hover:bg-loopymart-gray transition-colors"
                     >
                       <svg width="16" height="16" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -399,7 +399,7 @@ function getRatingBarWidth(stars) {
                   </span>
                   <span 
                     v-else
-                    class="text-flipkart-green text-sm"
+                    class="text-loopymart-green text-sm"
                   >
                     In Stock ({{ product.stock }} available)
                   </span>
@@ -407,7 +407,7 @@ function getRatingBarWidth(stars) {
               </div>
 
               <!-- Delivery -->
-              <div class="py-4 border-t border-flipkart-gray-dark">
+              <div class="py-4 border-t border-loopymart-gray-dark">
                 <div class="flex items-start gap-4">
                   <svg width="20" height="20" class="w-5 h-5 text-text-secondary flex-shrink-0" fill="none" 
                        stroke="currentColor" viewBox="0 0 24 24">
@@ -428,7 +428,7 @@ function getRatingBarWidth(stars) {
               </div>
 
               <!-- Description -->
-              <div v-if="product.description" class="py-4 border-t border-flipkart-gray-dark">
+              <div v-if="product.description" class="py-4 border-t border-loopymart-gray-dark">
                 <h3 class="font-medium text-text-primary mb-3">Product Description</h3>
                 <p class="text-sm text-text-secondary leading-relaxed">
                   {{ product.description }}
@@ -436,7 +436,7 @@ function getRatingBarWidth(stars) {
               </div>
 
               <!-- Services -->
-              <div class="py-4 border-t border-flipkart-gray-dark">
+              <div class="py-4 border-t border-loopymart-gray-dark">
                 <div class="grid grid-cols-3 gap-4">
                   <div class="flex flex-col items-center text-center">
                     <svg width="32" height="32" class="w-8 h-8 text-text-secondary mb-2" fill="none" stroke="currentColor" 
@@ -473,9 +473,9 @@ function getRatingBarWidth(stars) {
               </h2>
 
               <!-- Rating Overview -->
-              <div class="flex flex-col sm:flex-row gap-6 pb-6 border-b border-flipkart-gray-dark">
+              <div class="flex flex-col sm:flex-row gap-6 pb-6 border-b border-loopymart-gray-dark">
                 <!-- Average Rating -->
-                <div class="text-center sm:pr-6 sm:border-r sm:border-flipkart-gray-dark">
+                <div class="text-center sm:pr-6 sm:border-r sm:border-loopymart-gray-dark">
                   <div class="text-4xl font-medium text-text-primary">
                     {{ averageRating }}
                   </div>
@@ -487,8 +487,8 @@ function getRatingBarWidth(stars) {
                       :class="[
                         'w-4 h-4',
                         star <= Math.round(parseFloat(averageRating))
-                          ? 'text-flipkart-green'
-                          : 'text-flipkart-gray-dark'
+                          ? 'text-loopymart-green'
+                          : 'text-loopymart-gray-dark'
                       ]"
                       fill="currentColor" viewBox="0 0 20 20"
                     >
@@ -504,12 +504,12 @@ function getRatingBarWidth(stars) {
                 <div class="flex-1 space-y-2">
                   <div v-for="star in [5, 4, 3, 2, 1]" :key="star" class="flex items-center gap-2">
                     <span class="text-sm text-text-secondary w-4">{{ star }}</span>
-                    <svg width="12" height="12" class="w-3 h-3 text-flipkart-green" fill="currentColor" viewBox="0 0 20 20">
+                    <svg width="12" height="12" class="w-3 h-3 text-loopymart-green" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                     </svg>
-                    <div class="flex-1 h-1.5 bg-flipkart-gray rounded-full overflow-hidden">
+                    <div class="flex-1 h-1.5 bg-loopymart-gray rounded-full overflow-hidden">
                       <div 
-                        class="h-full bg-flipkart-green transition-all duration-300"
+                        class="h-full bg-loopymart-green transition-all duration-300"
                         :style="{ width: `${getRatingBarWidth(star)}%` }"
                       ></div>
                     </div>
@@ -518,7 +518,7 @@ function getRatingBarWidth(stars) {
               </div>
 
               <!-- Rate This Product -->
-              <div v-if="isLoggedIn && canRate" class="py-6 border-b border-flipkart-gray-dark">
+              <div v-if="isLoggedIn && canRate" class="py-6 border-b border-loopymart-gray-dark">
                 <h3 class="font-medium text-text-primary mb-4">
                   {{ myRating ? 'Update Your Rating' : 'Rate This Product' }}
                 </h3>
@@ -534,7 +534,7 @@ function getRatingBarWidth(stars) {
                         width="32" height="32"
                         :class="[
                           'w-8 h-8 transition-colors',
-                          star <= userRating ? 'text-flipkart-orange' : 'text-flipkart-gray-dark'
+                          star <= userRating ? 'text-loopymart-orange' : 'text-loopymart-gray-dark'
                         ]"
                         fill="currentColor" viewBox="0 0 20 20"
                       >
@@ -563,22 +563,22 @@ function getRatingBarWidth(stars) {
                   v-if="ratingMessage" 
                   :class="[
                     'mt-2 text-sm',
-                    ratingMessage.includes('Failed') ? 'text-red-500' : 'text-flipkart-green'
+                    ratingMessage.includes('Failed') ? 'text-red-500' : 'text-loopymart-green'
                   ]"
                 >
                   {{ ratingMessage }}
                 </p>
               </div>
 
-              <div v-else-if="isLoggedIn && !canRate" class="py-6 border-b border-flipkart-gray-dark">
+              <div v-else-if="isLoggedIn && !canRate" class="py-6 border-b border-loopymart-gray-dark">
                 <p class="text-text-secondary text-sm">
                   Purchase and receive this product to leave a rating.
                 </p>
               </div>
 
-              <div v-else class="py-6 border-b border-flipkart-gray-dark">
+              <div v-else class="py-6 border-b border-loopymart-gray-dark">
                 <p class="text-text-secondary text-sm">
-                  <RouterLink :to="'/login?redirect=' + $route.fullPath" class="text-flipkart-blue">
+                  <RouterLink :to="'/login?redirect=' + $route.fullPath" class="text-loopymart-blue">
                     Login
                   </RouterLink>
                   to rate this product.
@@ -595,14 +595,14 @@ function getRatingBarWidth(stars) {
                   <div 
                     v-for="review in reviews" 
                     :key="review.id" 
-                    class="pb-4 border-b border-flipkart-gray-dark last:border-b-0"
+                    class="pb-4 border-b border-loopymart-gray-dark last:border-b-0"
                   >
                     <div class="flex items-center gap-3 mb-2">
                       <span 
                         :class="[
                           'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-xs text-white',
-                          review.rating >= 4 ? 'bg-flipkart-green' : 
-                          review.rating >= 3 ? 'bg-flipkart-orange' : 'bg-red-500'
+                          review.rating >= 4 ? 'bg-loopymart-green' : 
+                          review.rating >= 3 ? 'bg-loopymart-orange' : 'bg-red-500'
                         ]"
                       >
                         {{ review.rating }}

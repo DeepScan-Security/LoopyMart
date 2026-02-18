@@ -1,5 +1,5 @@
 """
-Clipkart Clone API - Main Application
+LoopyMart API - Main Application
 
 Database Architecture:
 - PostgreSQL (SQL): User authentication only
