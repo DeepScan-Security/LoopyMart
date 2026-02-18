@@ -158,7 +158,7 @@ const isAssured = computed(() => {
       </span>
     </div>
     <p class="text-sm font-medium text-text-primary">{{ displayPrice }}</p>
-    <p class="text-xs text-flipkart-green">{{ discountPercent }}% off</p>
+    <p class="text-xs text-loopymart-green">{{ discountPercent }}% off</p>
   </RouterLink>
 
   <!-- Compact Variant (small cards) -->
@@ -177,7 +177,7 @@ const isAssured = computed(() => {
     <div class="flex-1 min-w-0">
       <h3 class="text-sm text-text-primary line-clamp-1">{{ product.name }}</h3>
       <p class="text-sm font-medium text-text-primary">{{ displayPrice }}</p>
-      <p class="text-xs text-flipkart-green">{{ discountPercent }}% off</p>
+      <p class="text-xs text-loopymart-green">{{ discountPercent }}% off</p>
     </div>
   </RouterLink>
 </template>

@@ -85,21 +85,21 @@ function clearActiveCategory() {
 </script>
 
 <template>
-  <nav class="bg-white shadow-sm border-b border-flipkart-gray-dark">
+  <nav class="bg-white shadow-sm border-b border-loopymart-gray-dark">
     <div class="max-w-container mx-auto px-4">
       <div class="flex items-center justify-center gap-4 overflow-x-auto scrollbar-hide py-2">
         <!-- All Products -->
         <RouterLink
           to="/products"
           class="flex flex-col items-center gap-1 px-4 py-2 min-w-[80px] text-center
-                 hover:text-flipkart-blue transition-colors group"
+                 hover:text-loopymart-blue transition-colors group"
           @mouseenter="clearActiveCategory"
         >
           <div class="w-16 h-16 flex items-center justify-center text-text-secondary 
-                      group-hover:text-flipkart-blue transition-colors"
+                      group-hover:text-loopymart-blue transition-colors"
                v-html="categoryIcons.default">
           </div>
-          <span class="text-xs font-medium text-text-primary group-hover:text-flipkart-blue 
+          <span class="text-xs font-medium text-text-primary group-hover:text-loopymart-blue 
                        whitespace-nowrap">
             All Products
           </span>
@@ -116,13 +116,13 @@ function clearActiveCategory() {
           <RouterLink
             :to="{ name: 'Products', query: { category: category.slug } }"
             class="flex flex-col items-center gap-1 px-4 py-2 min-w-[80px] text-center
-                   hover:text-flipkart-blue transition-colors group"
+                   hover:text-loopymart-blue transition-colors group"
           >
             <div class="w-16 h-16 flex items-center justify-center text-text-secondary 
-                        group-hover:text-flipkart-blue transition-colors"
+                        group-hover:text-loopymart-blue transition-colors"
                  v-html="getCategoryIcon(category.slug)">
             </div>
-            <span class="text-xs font-medium text-text-primary group-hover:text-flipkart-blue 
+            <span class="text-xs font-medium text-text-primary group-hover:text-loopymart-blue 
                          whitespace-nowrap flex items-center gap-1">
               {{ category.name }}
               <svg width="10" height="10" class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
@@ -140,30 +140,30 @@ function clearActiveCategory() {
             <div class="p-4">
               <RouterLink
                 :to="{ name: 'Products', query: { category: category.slug } }"
-                class="block py-2 text-sm text-text-primary hover:text-flipkart-blue 
+                class="block py-2 text-sm text-text-primary hover:text-loopymart-blue 
                        font-medium transition-colors"
               >
                 All {{ category.name }}
               </RouterLink>
-              <div class="border-t border-flipkart-gray-dark mt-2 pt-2">
+              <div class="border-t border-loopymart-gray-dark mt-2 pt-2">
                 <p class="text-xs text-text-secondary mb-2">Popular in {{ category.name }}</p>
                 <RouterLink
                   :to="{ name: 'Products', query: { category: category.slug } }"
-                  class="block py-1.5 text-sm text-text-primary hover:text-flipkart-blue 
+                  class="block py-1.5 text-sm text-text-primary hover:text-loopymart-blue 
                          transition-colors"
                 >
                   Best Sellers
                 </RouterLink>
                 <RouterLink
                   :to="{ name: 'Products', query: { category: category.slug } }"
-                  class="block py-1.5 text-sm text-text-primary hover:text-flipkart-blue 
+                  class="block py-1.5 text-sm text-text-primary hover:text-loopymart-blue 
                          transition-colors"
                 >
                   New Arrivals
                 </RouterLink>
                 <RouterLink
                   :to="{ name: 'Products', query: { category: category.slug } }"
-                  class="block py-1.5 text-sm text-text-primary hover:text-flipkart-blue 
+                  class="block py-1.5 text-sm text-text-primary hover:text-loopymart-blue 
                          transition-colors"
                 >
                   Top Deals

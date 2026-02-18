@@ -7,7 +7,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        flipkart: {
+        loopymart: {
           blue: '#2874f0',
           'blue-dark': '#1a5dc7',
           yellow: '#ffe500',

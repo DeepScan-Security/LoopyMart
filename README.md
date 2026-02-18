@@ -1,6 +1,6 @@
-# Flipkart Clone
+# LoopyMart
 
-A minimal yet scalable Flipkart-like e-commerce app with Vue 3 frontend and FastAPI backend.
+A minimal yet scalable e-commerce app with Vue 3 frontend and FastAPI backend.
 
 ## Features
 
@@ -35,7 +35,7 @@ This hybrid approach uses:
 ## Project Structure
 
 ```
-Flipkart-clone/
+LoopyMart/
 ├── backend/              # FastAPI app
 │   ├── app/
 │   │   ├── api/          # Routes (auth, categories, products, cart, orders, admin)
@@ -85,11 +85,11 @@ cp .env.example .env
 
 ```env
 # PostgreSQL (for users)
-DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/flipkart_users
+DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/loopymart_users
 
 # MongoDB (for products, categories, cart, orders)
 MONGODB_URL=mongodb://localhost:27017
-MONGODB_DB_NAME=flipkart_clone
+MONGODB_DB_NAME=loopymart
 
 # JWT Secret Key (generate a strong random key)
 SECRET_KEY=your-secret-key-here
@@ -126,7 +126,7 @@ Frontend runs at **http://localhost:5173** and proxies `/api` to the backend.
 
 **PostgreSQL:**
 ```sh
-createdb flipkart_users
+createdb loopymart_users
 ```
 Tables are created automatically on first start.
 

@@ -139,7 +139,7 @@ async function upgradeToBlack() {
   try {
     const res = await client.post('/auth/upgrade-black')
     user.value = res.data
-    success.value = 'Welcome to Clipkart Black!'
+    success.value = 'Welcome to LoopyMart Black!'
   } catch (e) {
     error.value = e.response?.data?.detail || 'Failed to upgrade'
   }
@@ -150,16 +150,16 @@ const tabs = [
   { id: 'picture', label: 'Profile Picture', icon: 'camera' },
   { id: 'orders', label: 'My Orders', icon: 'package' },
   { id: 'kyc', label: 'KYC Verification', icon: 'shield' },
-  { id: 'membership', label: 'Clipkart Plus', icon: 'crown' },
+  { id: 'membership', label: 'LoopyMart Plus', icon: 'crown' },
 ]
 </script>
 
 <template>
-  <div class="min-h-screen bg-flipkart-gray py-4">
+  <div class="min-h-screen bg-loopymart-gray py-4">
     <div class="max-w-container mx-auto px-4">
       <!-- Loading -->
       <div v-if="loading" class="bg-white shadow-card rounded-sm p-12 text-center">
-        <div class="inline-block w-8 h-8 border-4 border-flipkart-blue border-t-transparent 
+        <div class="inline-block w-8 h-8 border-4 border-loopymart-blue border-t-transparent 
                     rounded-full animate-spin"></div>
         <p class="mt-4 text-text-secondary">Loading profile...</p>
       </div>
@@ -179,7 +179,7 @@ const tabs = [
                 />
                 <div 
                   v-else 
-                  class="w-full h-full bg-flipkart-blue text-white rounded-full 
+                  class="w-full h-full bg-loopymart-blue text-white rounded-full 
                          flex items-center justify-center text-2xl font-bold"
                 >
                   {{ user.full_name.charAt(0).toUpperCase() }}
@@ -201,8 +201,8 @@ const tabs = [
               :class="[
                 'w-full flex items-center gap-3 px-4 py-3 text-left transition-colors',
                 activeTab === tab.id 
-                  ? 'bg-flipkart-gray border-l-4 border-flipkart-blue text-flipkart-blue' 
-                  : 'text-text-primary hover:bg-flipkart-gray border-l-4 border-transparent'
+                  ? 'bg-loopymart-gray border-l-4 border-loopymart-blue text-loopymart-blue' 
+                  : 'text-text-primary hover:bg-loopymart-gray border-l-4 border-transparent'
               ]"
             >
               <svg width="20" height="20" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -230,13 +230,13 @@ const tabs = [
           <div v-if="error" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-sm text-red-600 text-sm">
             {{ error }}
           </div>
-          <div v-if="success" class="mb-4 p-3 bg-green-50 border border-flipkart-green rounded-sm text-flipkart-green text-sm">
+          <div v-if="success" class="mb-4 p-3 bg-green-50 border border-loopymart-green rounded-sm text-loopymart-green text-sm">
             {{ success }}
           </div>
 
           <!-- Profile Tab -->
           <div v-if="activeTab === 'profile'" class="bg-white shadow-card rounded-sm">
-            <div class="p-4 border-b border-flipkart-gray-dark">
+            <div class="p-4 border-b border-loopymart-gray-dark">
               <h2 class="font-medium text-text-primary">Personal Information</h2>
             </div>
             <form @submit.prevent="updateProfile" class="p-6 space-y-6">
@@ -248,7 +248,7 @@ const tabs = [
                 <div>
                   <label class="form-label">Email Address</label>
                   <input :value="user.email" type="email" disabled 
-                         class="form-input bg-flipkart-gray cursor-not-allowed" />
+                         class="form-input bg-loopymart-gray cursor-not-allowed" />
                 </div>
                 <div>
                   <label class="form-label">Mobile Number</label>
@@ -265,7 +265,7 @@ const tabs = [
                 <button type="submit" class="btn btn-primary">Save Changes</button>
                 <div class="flex items-center gap-2 text-sm">
                   <span class="text-text-secondary">Wallet Balance:</span>
-                  <span class="font-medium text-flipkart-blue">
+                  <span class="font-medium text-loopymart-blue">
                     ₹{{ user.wallet_balance.toLocaleString('en-IN') }}
                   </span>
                 </div>
@@ -275,7 +275,7 @@ const tabs = [
 
           <!-- Picture Tab -->
           <div v-if="activeTab === 'picture'" class="bg-white shadow-card rounded-sm">
-            <div class="p-4 border-b border-flipkart-gray-dark">
+            <div class="p-4 border-b border-loopymart-gray-dark">
               <h2 class="font-medium text-text-primary">Profile Picture</h2>
             </div>
             <div class="p-6">
@@ -285,11 +285,11 @@ const tabs = [
                     v-if="profilePicturePreview || user.profile_picture_url" 
                     :src="profilePicturePreview || user.profile_picture_url" 
                     alt="Profile"
-                    class="w-full h-full rounded-full object-cover border-4 border-flipkart-gray"
+                    class="w-full h-full rounded-full object-cover border-4 border-loopymart-gray"
                   />
                   <div 
                     v-else 
-                    class="w-full h-full bg-flipkart-blue text-white rounded-full 
+                    class="w-full h-full bg-loopymart-blue text-white rounded-full 
                            flex items-center justify-center text-3xl font-bold"
                   >
                     {{ user.full_name.charAt(0).toUpperCase() }}
@@ -314,9 +314,9 @@ const tabs = [
 
           <!-- Orders Tab -->
           <div v-if="activeTab === 'orders'" class="bg-white shadow-card rounded-sm">
-            <div class="p-4 border-b border-flipkart-gray-dark flex items-center justify-between">
+            <div class="p-4 border-b border-loopymart-gray-dark flex items-center justify-between">
               <h2 class="font-medium text-text-primary">My Orders</h2>
-              <RouterLink to="/orders" class="text-flipkart-blue text-sm hover:underline">
+              <RouterLink to="/orders" class="text-loopymart-blue text-sm hover:underline">
                 View All Orders
               </RouterLink>
             </div>
@@ -329,7 +329,7 @@ const tabs = [
 
           <!-- KYC Tab -->
           <div v-if="activeTab === 'kyc'" class="bg-white shadow-card rounded-sm">
-            <div class="p-4 border-b border-flipkart-gray-dark">
+            <div class="p-4 border-b border-loopymart-gray-dark">
               <h2 class="font-medium text-text-primary">KYC Verification</h2>
             </div>
             <div class="p-6">
@@ -352,7 +352,7 @@ const tabs = [
               </div>
 
               <div v-else class="space-y-6">
-                <div class="flex items-center gap-4 p-4 bg-flipkart-gray rounded-sm">
+                <div class="flex items-center gap-4 p-4 bg-loopymart-gray rounded-sm">
                   <div class="flex-1">
                     <p class="text-sm text-text-secondary">Document Type</p>
                     <p class="font-medium">{{ kyc.document_type }}</p>
@@ -364,8 +364,8 @@ const tabs = [
                   <div>
                     <span :class="[
                       'px-3 py-1 rounded-full text-sm font-medium',
-                      kyc.status === 'VERIFIED' ? 'bg-flipkart-green text-white' :
-                      kyc.status === 'PENDING' ? 'bg-flipkart-orange text-white' :
+                      kyc.status === 'VERIFIED' ? 'bg-loopymart-green text-white' :
+                      kyc.status === 'PENDING' ? 'bg-loopymart-orange text-white' :
                       'bg-red-500 text-white'
                     ]">
                       {{ kyc.status }}
@@ -388,8 +388,8 @@ const tabs = [
                     Upload
                   </button>
                 </div>
-                <div v-else class="p-4 bg-green-50 border border-flipkart-green rounded-sm">
-                  <p class="text-flipkart-green font-medium flex items-center gap-2">
+                <div v-else class="p-4 bg-green-50 border border-loopymart-green rounded-sm">
+                  <p class="text-loopymart-green font-medium flex items-center gap-2">
                     <svg width="20" height="20" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
                     </svg>
@@ -402,19 +402,19 @@ const tabs = [
 
           <!-- Membership Tab -->
           <div v-if="activeTab === 'membership'" class="bg-white shadow-card rounded-sm">
-            <div class="p-4 border-b border-flipkart-gray-dark">
-              <h2 class="font-medium text-text-primary">Clipkart Plus Membership</h2>
+            <div class="p-4 border-b border-loopymart-gray-dark">
+              <h2 class="font-medium text-text-primary">LoopyMart Plus Membership</h2>
             </div>
             <div class="p-6">
               <div v-if="!user.is_black_member">
                 <div class="max-w-lg">
                   <h3 class="text-xl font-medium text-text-primary mb-4">
-                    Upgrade to Clipkart Plus
+                    Upgrade to LoopyMart Plus
                   </h3>
                   <ul class="space-y-3 mb-6">
                     <li class="flex items-center gap-3">
-                      <span class="w-8 h-8 bg-flipkart-blue/10 rounded-full flex items-center 
-                                   justify-center text-flipkart-blue">
+                      <span class="w-8 h-8 bg-loopymart-blue/10 rounded-full flex items-center 
+                                   justify-center text-loopymart-blue">
                         <svg width="20" height="20" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                           <path d="M5 3l3.5 5.5L12 5l3.5 3.5L19 3v13a2 2 0 01-2 2H7a2 2 0 01-2-2V3z"/>
                         </svg>
@@ -422,8 +422,8 @@ const tabs = [
                       <span class="text-text-primary">Exclusive member badge</span>
                     </li>
                     <li class="flex items-center gap-3">
-                      <span class="w-8 h-8 bg-flipkart-blue/10 rounded-full flex items-center 
-                                   justify-center text-flipkart-blue">
+                      <span class="w-8 h-8 bg-loopymart-blue/10 rounded-full flex items-center 
+                                   justify-center text-loopymart-blue">
                         <svg width="20" height="20" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                                 d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
@@ -432,8 +432,8 @@ const tabs = [
                       <span class="text-text-primary">Free express delivery on all orders</span>
                     </li>
                     <li class="flex items-center gap-3">
-                      <span class="w-8 h-8 bg-flipkart-blue/10 rounded-full flex items-center 
-                                   justify-center text-flipkart-blue">
+                      <span class="w-8 h-8 bg-loopymart-blue/10 rounded-full flex items-center 
+                                   justify-center text-loopymart-blue">
                         <svg width="20" height="20" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                                 d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
@@ -442,8 +442,8 @@ const tabs = [
                       <span class="text-text-primary">Early access to sales and offers</span>
                     </li>
                     <li class="flex items-center gap-3">
-                      <span class="w-8 h-8 bg-flipkart-blue/10 rounded-full flex items-center 
-                                   justify-center text-flipkart-blue">
+                      <span class="w-8 h-8 bg-loopymart-blue/10 rounded-full flex items-center 
+                                   justify-center text-loopymart-blue">
                         <svg width="20" height="20" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                                 d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -466,7 +466,7 @@ const tabs = [
                   </svg>
                 </div>
                 <h3 class="text-2xl font-bold text-text-primary mb-2">
-                  You're a Clipkart Plus Member!
+                  You're a LoopyMart Plus Member!
                 </h3>
                 <p class="text-text-secondary">
                   Member since: {{ new Date(user.black_member_since).toLocaleDateString('en-IN', {

@@ -33,10 +33,10 @@ async function submit() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-flipkart-gray flex items-center justify-center py-8 px-4">
+  <div class="min-h-screen bg-loopymart-gray flex items-center justify-center py-8 px-4">
     <div class="w-full max-w-4xl bg-white shadow-card rounded-sm overflow-hidden flex">
       <!-- Left Panel - Blue Section -->
-      <div class="hidden md:flex w-[40%] bg-flipkart-blue p-10 flex-col justify-between">
+      <div class="hidden md:flex w-[40%] bg-loopymart-blue p-10 flex-col justify-between">
         <div>
           <h1 class="text-3xl font-bold text-white mb-4">Looks like you're new here!</h1>
           <p class="text-white/80 text-lg leading-relaxed">
@@ -56,7 +56,7 @@ async function submit() {
       <div class="flex-1 p-8 md:p-10">
         <!-- Mobile Header -->
         <div class="md:hidden text-center mb-8">
-          <h1 class="text-2xl font-bold text-flipkart-blue mb-2">Create Account</h1>
+          <h1 class="text-2xl font-bold text-loopymart-blue mb-2">Create Account</h1>
           <p class="text-text-secondary text-sm">
             Sign up with your email to get started
           </p>
@@ -73,8 +73,8 @@ async function submit() {
               v-model="fullName"
               type="text"
               required
-              class="w-full px-0 py-2 border-0 border-b-2 border-flipkart-gray-dark 
-                     focus:border-flipkart-blue focus:ring-0 text-text-primary
+              class="w-full px-0 py-2 border-0 border-b-2 border-loopymart-gray-dark 
+                     focus:border-loopymart-blue focus:ring-0 text-text-primary
                      placeholder:text-text-hint transition-colors"
               placeholder="Enter your full name"
             />
@@ -90,8 +90,8 @@ async function submit() {
               v-model="email"
               type="email"
               required
-              class="w-full px-0 py-2 border-0 border-b-2 border-flipkart-gray-dark 
-                     focus:border-flipkart-blue focus:ring-0 text-text-primary
+              class="w-full px-0 py-2 border-0 border-b-2 border-loopymart-gray-dark 
+                     focus:border-loopymart-blue focus:ring-0 text-text-primary
                      placeholder:text-text-hint transition-colors"
               placeholder="Enter your email"
             />
@@ -109,8 +109,8 @@ async function submit() {
                 :type="showPassword ? 'text' : 'password'"
                 required
                 minlength="6"
-                class="w-full px-0 py-2 border-0 border-b-2 border-flipkart-gray-dark 
-                       focus:border-flipkart-blue focus:ring-0 text-text-primary
+                class="w-full px-0 py-2 border-0 border-b-2 border-loopymart-gray-dark 
+                       focus:border-loopymart-blue focus:ring-0 text-text-primary
                        placeholder:text-text-hint transition-colors pr-10"
                 placeholder="Minimum 6 characters"
               />
@@ -118,7 +118,7 @@ async function submit() {
                 type="button"
                 @click="showPassword = !showPassword"
                 class="absolute right-0 top-1/2 -translate-y-1/2 text-text-secondary 
-                       hover:text-flipkart-blue"
+                       hover:text-loopymart-blue"
               >
                 <svg v-if="showPassword" width="20" height="20" class="w-5 h-5" fill="none" stroke="currentColor" 
                      viewBox="0 0 24 24">
@@ -137,9 +137,9 @@ async function submit() {
 
           <!-- Terms Text -->
           <p class="text-xs text-text-secondary">
-            By continuing, you agree to Clipkart's 
-            <a href="#" class="text-flipkart-blue hover:underline">Terms of Use</a> and 
-            <a href="#" class="text-flipkart-blue hover:underline">Privacy Policy</a>.
+            By continuing, you agree to LoopyMart's 
+            <a href="#" class="text-loopymart-blue hover:underline">Terms of Use</a> and 
+            <a href="#" class="text-loopymart-blue hover:underline">Privacy Policy</a>.
           </p>
 
           <!-- Error Message -->
@@ -154,7 +154,7 @@ async function submit() {
           <button
             type="submit"
             :disabled="loading"
-            class="w-full py-3 bg-flipkart-orange text-white font-medium rounded-sm
+            class="w-full py-3 bg-loopymart-orange text-white font-medium rounded-sm
                    hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {{ loading ? 'Creating Account...' : 'Continue' }}
@@ -162,12 +162,12 @@ async function submit() {
         </form>
 
         <!-- Login Link -->
-        <div class="mt-8 pt-6 border-t border-flipkart-gray-dark text-center">
+        <div class="mt-8 pt-6 border-t border-loopymart-gray-dark text-center">
           <p class="text-text-secondary">
             Existing User? 
             <RouterLink 
               to="/login" 
-              class="text-flipkart-blue font-medium hover:underline"
+              class="text-loopymart-blue font-medium hover:underline"
             >
               Log in
             </RouterLink>

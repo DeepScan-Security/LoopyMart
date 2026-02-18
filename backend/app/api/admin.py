@@ -191,7 +191,7 @@ async def admin_upload_image(
     # #region agent log
     import json as _json_debug
     _debug_upload_data = {"location": "admin.py:upload_image", "message": "File uploaded", "data": {"saved_path": str(path), "path_exists": path.exists(), "file_size": len(content), "returned_url": f"/static/uploads/{name}"}, "timestamp": __import__("time").time() * 1000, "sessionId": "debug-session", "hypothesisId": "H3"}
-    with open("/Users/shubham2201/Documents/Projects/Flipkart-clone/.cursor/debug.log", "a") as _f: _f.write(_json_debug.dumps(_debug_upload_data) + "\n")
+    with open("/Users/hitesh.kumar/Documents/Projects/LoopyMart/.cursor/debug.log", "a") as _f: _f.write(_json_debug.dumps(_debug_upload_data) + "\n")
     # #endregion
     return {"url": f"/static/uploads/{name}"}
 

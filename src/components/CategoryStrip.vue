@@ -52,7 +52,7 @@ onMounted(async () => {
             :class="[
               'w-20 h-20 rounded-full flex items-center justify-center overflow-hidden',
               'shadow-sm group-hover:shadow-md transition-all group-hover:scale-105',
-              category.image_url ? 'bg-flipkart-gray' : 'bg-gradient-to-br ' + getCategoryGradient(category.slug)
+              category.image_url ? 'bg-loopymart-gray' : 'bg-gradient-to-br ' + getCategoryGradient(category.slug)
             ]"
           >
             <!-- Show image if available -->
@@ -67,7 +67,7 @@ onMounted(async () => {
               {{ category.name?.charAt(0).toUpperCase() }}
             </span>
           </div>
-          <span class="text-sm font-medium text-text-primary group-hover:text-flipkart-blue 
+          <span class="text-sm font-medium text-text-primary group-hover:text-loopymart-blue 
                        transition-colors whitespace-nowrap">
             {{ category.name }}
           </span>

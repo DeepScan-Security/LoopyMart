@@ -139,11 +139,11 @@ async function placeOrder() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-flipkart-gray py-4">
+  <div class="min-h-screen bg-loopymart-gray py-4">
     <div class="max-w-container mx-auto px-4">
       <!-- Loading State -->
       <div v-if="loading" class="bg-white shadow-card rounded-sm p-12 text-center">
-        <div class="inline-block w-8 h-8 border-4 border-flipkart-blue border-t-transparent 
+        <div class="inline-block w-8 h-8 border-4 border-loopymart-blue border-t-transparent 
                     rounded-full animate-spin"></div>
         <p class="mt-4 text-text-secondary">Loading checkout...</p>
       </div>
@@ -171,13 +171,13 @@ async function placeOrder() {
             <div 
               :class="[
                 'flex items-center gap-3 p-4',
-                currentStep === 1 ? 'bg-flipkart-blue text-white' : 'border-b border-flipkart-gray-dark'
+                currentStep === 1 ? 'bg-loopymart-blue text-white' : 'border-b border-loopymart-gray-dark'
               ]"
             >
               <span 
                 :class="[
                   'w-6 h-6 flex items-center justify-center rounded-sm text-sm font-medium',
-                  currentStep === 1 ? 'bg-white text-flipkart-blue' : 'bg-flipkart-gray text-text-secondary'
+                  currentStep === 1 ? 'bg-white text-loopymart-blue' : 'bg-loopymart-gray text-text-secondary'
                 ]"
               >
                 1
@@ -185,7 +185,7 @@ async function placeOrder() {
               <span class="font-medium">DELIVERY ADDRESS</span>
               <span 
                 v-if="currentStep > 1 && shippingAddress" 
-                class="ml-auto text-sm text-flipkart-blue cursor-pointer"
+                class="ml-auto text-sm text-loopymart-blue cursor-pointer"
                 @click="currentStep = 1"
               >
                 Change
@@ -222,13 +222,13 @@ async function placeOrder() {
             <div 
               :class="[
                 'flex items-center gap-3 p-4',
-                currentStep === 2 ? 'bg-flipkart-blue text-white' : 'border-b border-flipkart-gray-dark'
+                currentStep === 2 ? 'bg-loopymart-blue text-white' : 'border-b border-loopymart-gray-dark'
               ]"
             >
               <span 
                 :class="[
                   'w-6 h-6 flex items-center justify-center rounded-sm text-sm font-medium',
-                  currentStep === 2 ? 'bg-white text-flipkart-blue' : 'bg-flipkart-gray text-text-secondary'
+                  currentStep === 2 ? 'bg-white text-loopymart-blue' : 'bg-loopymart-gray text-text-secondary'
                 ]"
               >
                 2
@@ -236,7 +236,7 @@ async function placeOrder() {
               <span class="font-medium">PAYMENT OPTIONS</span>
               <span 
                 v-if="currentStep > 2" 
-                class="ml-auto text-sm text-flipkart-blue cursor-pointer"
+                class="ml-auto text-sm text-loopymart-blue cursor-pointer"
                 @click="currentStep = 2"
               >
                 Change
@@ -248,12 +248,12 @@ async function placeOrder() {
               <div class="space-y-3 mb-6">
                 <label 
                   class="flex items-center gap-3 p-4 border rounded-sm cursor-pointer transition-colors"
-                  :class="paymentMethod === 'wallet' ? 'border-flipkart-blue bg-blue-50' : 'border-flipkart-gray-dark hover:border-flipkart-blue'"
+                  :class="paymentMethod === 'wallet' ? 'border-loopymart-blue bg-blue-50' : 'border-loopymart-gray-dark hover:border-loopymart-blue'"
                 >
-                  <input type="radio" v-model="paymentMethod" value="wallet" class="text-flipkart-blue" />
+                  <input type="radio" v-model="paymentMethod" value="wallet" class="text-loopymart-blue" />
                   <div class="flex-1">
-                    <span class="font-medium text-text-primary">Clipkart Wallet</span>
-                    <span class="ml-2 text-sm text-flipkart-green">
+                    <span class="font-medium text-text-primary">LoopyMart Wallet</span>
+                    <span class="ml-2 text-sm text-loopymart-green">
                       (Balance: ₹{{ walletBalance.toLocaleString('en-IN') }})
                     </span>
                   </div>
@@ -261,9 +261,9 @@ async function placeOrder() {
 
                 <label 
                   class="flex items-center gap-3 p-4 border rounded-sm cursor-pointer transition-colors"
-                  :class="paymentMethod === 'card' ? 'border-flipkart-blue bg-blue-50' : 'border-flipkart-gray-dark hover:border-flipkart-blue'"
+                  :class="paymentMethod === 'card' ? 'border-loopymart-blue bg-blue-50' : 'border-loopymart-gray-dark hover:border-loopymart-blue'"
                 >
-                  <input type="radio" v-model="paymentMethod" value="card" class="text-flipkart-blue" />
+                  <input type="radio" v-model="paymentMethod" value="card" class="text-loopymart-blue" />
                   <div class="flex-1">
                     <span class="font-medium text-text-primary">Credit / Debit Card</span>
                   </div>
@@ -276,9 +276,9 @@ async function placeOrder() {
 
                 <label 
                   class="flex items-center gap-3 p-4 border rounded-sm cursor-pointer transition-colors"
-                  :class="paymentMethod === 'upi' ? 'border-flipkart-blue bg-blue-50' : 'border-flipkart-gray-dark hover:border-flipkart-blue'"
+                  :class="paymentMethod === 'upi' ? 'border-loopymart-blue bg-blue-50' : 'border-loopymart-gray-dark hover:border-loopymart-blue'"
                 >
-                  <input type="radio" v-model="paymentMethod" value="upi" class="text-flipkart-blue" />
+                  <input type="radio" v-model="paymentMethod" value="upi" class="text-loopymart-blue" />
                   <div class="flex-1">
                     <span class="font-medium text-text-primary">UPI</span>
                     <span class="ml-2 text-xs text-text-secondary">Google Pay, PhonePe, Paytm</span>
@@ -287,9 +287,9 @@ async function placeOrder() {
 
                 <label 
                   class="flex items-center gap-3 p-4 border rounded-sm cursor-pointer transition-colors"
-                  :class="paymentMethod === 'cod' ? 'border-flipkart-blue bg-blue-50' : 'border-flipkart-gray-dark hover:border-flipkart-blue'"
+                  :class="paymentMethod === 'cod' ? 'border-loopymart-blue bg-blue-50' : 'border-loopymart-gray-dark hover:border-loopymart-blue'"
                 >
-                  <input type="radio" v-model="paymentMethod" value="cod" class="text-flipkart-blue" />
+                  <input type="radio" v-model="paymentMethod" value="cod" class="text-loopymart-blue" />
                   <div class="flex-1">
                     <span class="font-medium text-text-primary">Cash on Delivery</span>
                     <span class="ml-2 text-xs text-text-secondary">+₹50 COD charges</span>
@@ -298,13 +298,13 @@ async function placeOrder() {
               </div>
 
               <!-- Apply Coupon -->
-              <div class="border-t border-flipkart-gray-dark pt-4">
+              <div class="border-t border-loopymart-gray-dark pt-4">
                 <h3 class="font-medium text-text-primary mb-3">Apply Coupon</h3>
                 
                 <div v-if="selectedCoupon" class="flex items-center justify-between p-3 
-                                                   bg-green-50 border border-flipkart-green rounded-sm mb-4">
+                                                   bg-green-50 border border-loopymart-green rounded-sm mb-4">
                   <div>
-                    <span class="font-medium text-flipkart-green">{{ selectedCoupon.code }}</span>
+                    <span class="font-medium text-loopymart-green">{{ selectedCoupon.code }}</span>
                     <span class="text-sm text-text-primary ml-2">
                       - ₹{{ selectedCoupon.discount }} off
                     </span>
@@ -317,8 +317,8 @@ async function placeOrder() {
                 <button 
                   v-else
                   @click="showCoupons = !showCoupons"
-                  class="w-full p-3 border border-dashed border-flipkart-blue rounded-sm 
-                         text-flipkart-blue font-medium hover:bg-blue-50 transition-colors"
+                  class="w-full p-3 border border-dashed border-loopymart-blue rounded-sm 
+                         text-loopymart-blue font-medium hover:bg-blue-50 transition-colors"
                 >
                   {{ showCoupons ? 'Hide Coupons' : 'View Available Coupons' }}
                 </button>
@@ -330,15 +330,15 @@ async function placeOrder() {
                     :class="[
                       'p-4 border-2 border-dashed rounded-sm',
                       coupon.is_used 
-                        ? 'border-flipkart-gray-dark bg-gray-50 opacity-60' 
-                        : 'border-flipkart-blue bg-blue-50'
+                        ? 'border-loopymart-gray-dark bg-gray-50 opacity-60' 
+                        : 'border-loopymart-blue bg-blue-50'
                     ]"
                   >
                     <div class="flex items-start justify-between">
                       <div>
-                        <span class="font-bold text-flipkart-blue">{{ coupon.code }}</span>
+                        <span class="font-bold text-loopymart-blue">{{ coupon.code }}</span>
                         <p class="text-sm text-text-secondary mt-1">{{ coupon.description }}</p>
-                        <span class="inline-block mt-2 px-2 py-1 bg-flipkart-blue text-white 
+                        <span class="inline-block mt-2 px-2 py-1 bg-loopymart-blue text-white 
                                      text-xs font-medium rounded-sm">
                           Save ₹{{ coupon.discount }}
                         </span>
@@ -366,7 +366,7 @@ async function placeOrder() {
 
             <div v-else-if="currentStep > 2" class="p-4">
               <p class="text-sm text-text-primary">
-                {{ paymentMethod === 'wallet' ? 'Clipkart Wallet' : 
+                {{ paymentMethod === 'wallet' ? 'LoopyMart Wallet' : 
                    paymentMethod === 'card' ? 'Credit/Debit Card' :
                    paymentMethod === 'upi' ? 'UPI' : 'Cash on Delivery' }}
               </p>
@@ -378,13 +378,13 @@ async function placeOrder() {
             <div 
               :class="[
                 'flex items-center gap-3 p-4',
-                currentStep === 3 ? 'bg-flipkart-blue text-white' : 'border-b border-flipkart-gray-dark'
+                currentStep === 3 ? 'bg-loopymart-blue text-white' : 'border-b border-loopymart-gray-dark'
               ]"
             >
               <span 
                 :class="[
                   'w-6 h-6 flex items-center justify-center rounded-sm text-sm font-medium',
-                  currentStep === 3 ? 'bg-white text-flipkart-blue' : 'bg-flipkart-gray text-text-secondary'
+                  currentStep === 3 ? 'bg-white text-loopymart-blue' : 'bg-loopymart-gray text-text-secondary'
                 ]"
               >
                 3
@@ -403,7 +403,7 @@ async function placeOrder() {
                   <img
                     :src="imageUrl(item.product_image_url)"
                     :alt="item.product_name"
-                    class="w-16 h-16 object-contain border border-flipkart-gray-dark rounded-sm"
+                    class="w-16 h-16 object-contain border border-loopymart-gray-dark rounded-sm"
                   />
                   <div class="flex-1 min-w-0">
                     <h4 class="text-sm text-text-primary line-clamp-1">{{ item.product_name }}</h4>
@@ -427,14 +427,14 @@ async function placeOrder() {
               <button
                 @click="placeOrder"
                 :disabled="submitting"
-                class="w-full py-4 bg-flipkart-orange text-white text-lg font-medium 
+                class="w-full py-4 bg-loopymart-orange text-white text-lg font-medium 
                        rounded-sm hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {{ submitting ? 'Processing...' : `Pay ₹${total.toLocaleString('en-IN')}` }}
               </button>
 
               <p class="text-xs text-text-secondary text-center mt-4">
-                By placing this order, you agree to Clipkart's Terms of Use and Privacy Policy
+                By placing this order, you agree to LoopyMart's Terms of Use and Privacy Policy
               </p>
             </div>
           </div>
@@ -443,7 +443,7 @@ async function placeOrder() {
         <!-- Right Column - Price Summary -->
         <div class="lg:w-96 flex-shrink-0">
           <div class="bg-white shadow-card rounded-sm sticky top-32">
-            <div class="p-4 border-b border-flipkart-gray-dark">
+            <div class="p-4 border-b border-loopymart-gray-dark">
               <h2 class="text-text-secondary font-medium uppercase text-sm">Price Details</h2>
             </div>
 
@@ -457,21 +457,21 @@ async function placeOrder() {
 
               <div class="flex justify-between text-sm">
                 <span class="text-text-primary">Discount</span>
-                <span class="text-flipkart-green">− ₹{{ discount.toLocaleString('en-IN') }}</span>
+                <span class="text-loopymart-green">− ₹{{ discount.toLocaleString('en-IN') }}</span>
               </div>
 
               <div v-if="selectedCoupon" class="flex justify-between text-sm">
                 <span class="text-text-primary">Coupon ({{ selectedCoupon.code }})</span>
-                <span class="text-flipkart-green">− ₹{{ couponDiscount.toLocaleString('en-IN') }}</span>
+                <span class="text-loopymart-green">− ₹{{ couponDiscount.toLocaleString('en-IN') }}</span>
               </div>
 
               <div class="flex justify-between text-sm">
                 <span class="text-text-primary">Delivery Charges</span>
-                <span v-if="deliveryCharges === 0" class="text-flipkart-green">FREE</span>
+                <span v-if="deliveryCharges === 0" class="text-loopymart-green">FREE</span>
                 <span v-else class="text-text-primary">₹{{ deliveryCharges }}</span>
               </div>
 
-              <div class="pt-3 border-t border-dashed border-flipkart-gray-dark">
+              <div class="pt-3 border-t border-dashed border-loopymart-gray-dark">
                 <div class="flex justify-between">
                   <span class="font-medium text-text-primary">Total Amount</span>
                   <span class="font-medium text-text-primary">₹{{ total.toLocaleString('en-IN') }}</span>
@@ -479,7 +479,7 @@ async function placeOrder() {
               </div>
 
               <div class="pt-3">
-                <p class="text-sm text-flipkart-green font-medium">
+                <p class="text-sm text-loopymart-green font-medium">
                   You will save ₹{{ discount.toLocaleString('en-IN') }} on this order
                 </p>
               </div>

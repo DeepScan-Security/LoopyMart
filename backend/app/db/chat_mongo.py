@@ -75,7 +75,7 @@ def generate_ai_response(message: str) -> str:
         return "We accept multiple payment methods including Credit/Debit Cards, UPI, Wallet, and Cash on Delivery. Your payment information is securely encrypted."
     
     if "delivery" in message_lower or "shipping" in message_lower:
-        return "Standard delivery takes 5-7 business days. Express delivery (available for select products) takes 2-3 business days. Flipkart Black members get free express delivery on all orders!"
+        return "Standard delivery takes 5-7 business days. Express delivery (available for select products) takes 2-3 business days. LoopyMart Premium members get free express delivery on all orders!"
     
     if "wallet" in message_lower:
         return "Your wallet balance can be used for purchases at checkout. You can add money to your wallet or earn cashback through various offers and the spin wheel feature!"
@@ -84,16 +84,16 @@ def generate_ai_response(message: str) -> str:
         return "Check out the available coupons on the checkout page. New users get exclusive coupons worth ₹100 each! Remember, each coupon can only be used once."
     
     if "black" in message_lower or "membership" in message_lower:
-        return "Flipkart Black is our premium membership program offering exclusive benefits like free express delivery, early access to sales, and special discounts. Upgrade from your profile page!"
+        return "LoopyMart Premium is our premium membership program offering exclusive benefits like free express delivery, early access to sales, and special discounts. Upgrade from your profile page!"
     
     if "account" in message_lower or "profile" in message_lower:
         return "You can update your profile information, including name, phone, and address from the Profile section. Click on your profile icon to access settings."
     
     if "hello" in message_lower or "hi" in message_lower or "hey" in message_lower:
-        return "Hello! I'm your Flipkart support assistant. How can I help you today? You can ask me about orders, payments, returns, delivery, or any other questions!"
+        return "Hello! I'm your LoopyMart support assistant. How can I help you today? You can ask me about orders, payments, returns, delivery, or any other questions!"
     
     if "thank" in message_lower:
         return "You're welcome! Is there anything else I can help you with?"
     
     # Default response
-    return "Thank you for contacting Flipkart support. I can help you with orders, payments, returns, delivery, wallet, coupons, and account management. Please feel free to ask your question, and I'll do my best to assist you!"
+    return "Thank you for contacting LoopyMart support. I can help you with orders, payments, returns, delivery, wallet, coupons, and account management. Please feel free to ask your question, and I'll do my best to assist you!"
