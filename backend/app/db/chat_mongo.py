@@ -11,11 +11,23 @@ Chat messages are stored in MongoDB with the following schema:
 }
 """
 
+import logging
 from datetime import datetime, timezone
 
+import httpx
 from bson import ObjectId
 
+from app.core.config import settings
+from app.core.flags import get_chat_system_prompt
 from app.db.mongo import get_mongo_db
+
+logger = logging.getLogger(__name__)
+
+_FALLBACK_SYSTEM_PROMPT = (
+    'You are "EcoBot," a helpful support assistant for an eco-friendly e-commerce store. '
+    "Help customers with orders, shipping, products, and general questions. "
+    "Be polite, concise, and professional."
+)
 
 
 def _doc_to_chat(doc: dict) -> dict | None:
@@ -57,43 +69,51 @@ async def chat_get_history(user_id: int, skip: int = 0, limit: int = 50) -> list
     return [_doc_to_chat(d) for d in docs]
 
 
-def generate_ai_response(message: str) -> str:
-    """Generate a dummy AI response based on the message."""
-    message_lower = message.lower()
-    
-    # Rule-based responses
-    if "order" in message_lower and "track" in message_lower:
-        return "You can track your order from the Orders page. Click on your profile icon and select 'My Orders' to view all your orders and their current status."
-    
-    if "cancel" in message_lower:
-        return "To cancel an order, go to My Orders, select the order you want to cancel, and click on the 'Cancel Order' button. Note that orders can only be cancelled before they are shipped."
-    
-    if "return" in message_lower or "refund" in message_lower:
-        return "Our return policy allows returns within 7 days of delivery. To initiate a return, go to My Orders, select the order, and click 'Return Item'. Refunds are processed within 5-7 business days."
-    
-    if "payment" in message_lower or "pay" in message_lower:
-        return "We accept multiple payment methods including Credit/Debit Cards, UPI, Wallet, and Cash on Delivery. Your payment information is securely encrypted."
-    
-    if "delivery" in message_lower or "shipping" in message_lower:
-        return "Standard delivery takes 5-7 business days. Express delivery (available for select products) takes 2-3 business days. LoopyMart Premium members get free express delivery on all orders!"
-    
-    if "wallet" in message_lower:
-        return "Your wallet balance can be used for purchases at checkout. You can add money to your wallet or earn cashback through various offers and the spin wheel feature!"
-    
-    if "coupon" in message_lower or "discount" in message_lower:
-        return "Check out the available coupons on the checkout page. New users get exclusive coupons worth ₹100 each! Remember, each coupon can only be used once."
-    
-    if "black" in message_lower or "membership" in message_lower:
-        return "LoopyMart Premium is our premium membership program offering exclusive benefits like free express delivery, early access to sales, and special discounts. Upgrade from your profile page!"
-    
-    if "account" in message_lower or "profile" in message_lower:
-        return "You can update your profile information, including name, phone, and address from the Profile section. Click on your profile icon to access settings."
-    
-    if "hello" in message_lower or "hi" in message_lower or "hey" in message_lower:
-        return "Hello! I'm your LoopyMart support assistant. How can I help you today? You can ask me about orders, payments, returns, delivery, or any other questions!"
-    
-    if "thank" in message_lower:
-        return "You're welcome! Is there anything else I can help you with?"
-    
-    # Default response
-    return "Thank you for contacting LoopyMart support. I can help you with orders, payments, returns, delivery, wallet, coupons, and account management. Please feel free to ask your question, and I'll do my best to assist you!"
+async def generate_ai_response(message: str, history: list[dict] | None = None) -> str:
+    """
+    Generate an AI response via Ollama (mistral by default).
+
+    Builds a multi-turn message list:
+      [system prompt] + [past user/assistant turns] + [current user message]
+
+    Falls back to a polite error string if Ollama is unreachable.
+    """
+    system_prompt = get_chat_system_prompt() or _FALLBACK_SYSTEM_PROMPT
+
+    messages: list[dict] = [{"role": "system", "content": system_prompt}]
+
+    # Append the most recent 10 exchanges (20 messages) as context
+    if history:
+        for entry in history[-10:]:
+            messages.append({"role": "user", "content": entry["message"]})
+            messages.append({"role": "assistant", "content": entry["response"]})
+
+    messages.append({"role": "user", "content": message})
+
+    payload = {
+        "model": settings.ollama_model,
+        "messages": messages,
+        "stream": False,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(
+                f"{settings.ollama_url.rstrip('/')}/api/chat",
+                json=payload,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            return data["message"]["content"]
+    except httpx.ConnectError:
+        logger.warning("Ollama is not reachable at %s", settings.ollama_url)
+        return (
+            "I'm having trouble connecting to the AI service right now. "
+            "Please try again in a moment or contact support directly."
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Ollama request failed: %s", exc)
+        return (
+            "Sorry, I encountered an unexpected error. "
+            "Please try again or contact our support team."
+        )

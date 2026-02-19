@@ -110,6 +110,20 @@ class Settings(BaseSettings):
         )
     )
 
+    # Ollama (local LLM inference)
+    ollama_url: str = Field(
+        default_factory=lambda: get_yaml_value(
+            _yaml_config, "ollama", "url",
+            default=os.getenv("OLLAMA_URL", "http://localhost:11434")
+        )
+    )
+    ollama_model: str = Field(
+        default_factory=lambda: get_yaml_value(
+            _yaml_config, "ollama", "model",
+            default=os.getenv("OLLAMA_MODEL", "mistral")
+        )
+    )
+
     # CORS settings
     cors_origins: str = Field(
         default_factory=lambda: os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")

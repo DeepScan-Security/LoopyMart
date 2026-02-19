@@ -1,5 +1,5 @@
 """
-Support Chat API routes (with dummy AI responses).
+Support Chat API routes (with Ollama-powered AI responses).
 """
 
 from fastapi import APIRouter, Depends
@@ -17,17 +17,20 @@ async def send_chat_message(
     data: ChatMessageRequest,
     current_user: User = Depends(get_current_user),
 ) -> ChatMessageResponse:
-    """Send a chat message and get AI response."""
+    """Send a chat message and get an AI response from Ollama."""
+    # Load recent history for multi-turn context (last 10 exchanges)
+    history = await chat_get_history(current_user.id, skip=0, limit=10)
+
     # Generate AI response
-    ai_response = generate_ai_response(data.message)
-    
+    ai_response = await generate_ai_response(data.message, history=history)
+
     # Store chat message
     chat = await chat_create(
         user_id=current_user.id,
         message=data.message,
         response=ai_response,
     )
-    
+
     return ChatMessageResponse(
         id=chat["id"],
         user_id=chat["user_id"],
@@ -44,7 +47,7 @@ async def get_chat_history(
 ) -> ChatHistoryResponse:
     """Get chat history for current user."""
     history = await chat_get_history(current_user.id)
-    
+
     messages = []
     for chat in history:
         # Add user message
@@ -61,5 +64,5 @@ async def get_chat_history(
             "is_user": False,
             "created_at": chat["created_at"].isoformat(),
         })
-    
+
     return ChatHistoryResponse(messages=messages)
