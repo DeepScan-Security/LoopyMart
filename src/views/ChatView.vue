@@ -33,18 +33,29 @@ async function sendMessage() {
   const userMsg = newMessage.value.trim()
   newMessage.value = ''
   sending.value = true
-  
+
+  // Show user message immediately — don't wait for the round-trip
+  messages.value.push({
+    id: `pending_user_${Date.now()}`,
+    message: userMsg,
+    is_user: true,
+    created_at: new Date().toISOString(),
+  })
+  await nextTick()
+  scrollToBottom()
+
   try {
     const res = await client.post('/chat', { message: userMsg })
-    
-    // Add user message
+
+    // Replace the optimistic user message with the server-confirmed one
+    messages.value.pop()
     messages.value.push({
       id: `${res.data.id}_user`,
       message: userMsg,
       is_user: true,
       created_at: new Date().toISOString(),
     })
-    
+
     // Add AI response
     messages.value.push({
       id: `${res.data.id}_ai`,
@@ -52,7 +63,7 @@ async function sendMessage() {
       is_user: false,
       created_at: new Date().toISOString(),
     })
-    
+
     await nextTick()
     scrollToBottom()
   } catch (e) {
@@ -90,6 +101,16 @@ async function sendMessage() {
             <div class="message-text">{{ msg.message }}</div>
             <div class="message-time">
               {{ new Date(msg.created_at).toLocaleTimeString() }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Typing indicator shown while waiting for AI response -->
+        <div v-if="sending" class="message message-ai">
+          <div class="message-avatar">🤖</div>
+          <div class="message-content">
+            <div class="message-text typing-indicator">
+              <span></span><span></span><span></span>
             </div>
           </div>
         </div>
@@ -287,5 +308,31 @@ async function sendMessage() {
 .message-input button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Typing indicator — three bouncing dots */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0.6rem 0.9rem;
+  min-width: 54px;
+}
+
+.typing-indicator span {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #9ca3af;
+  animation: typingBounce 1.2s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0);    opacity: 0.4; }
+  30%           { transform: translateY(-6px); opacity: 1;   }
 }
 </style>

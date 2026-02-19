@@ -76,3 +76,13 @@ def get_all_challenge_ids() -> list[str]:
     if not isinstance(challenges, dict):
         return []
     return list(challenges.keys())
+
+
+def get_chat_system_prompt() -> str | None:
+    """Return the AI chat system prompt from flags.yml, or None if not configured."""
+    data = _load_flags_yaml()
+    chat_cfg = data.get("chat")
+    if not isinstance(chat_cfg, dict):
+        return None
+    prompt = chat_cfg.get("system_prompt")
+    return str(prompt).strip() if prompt else None
