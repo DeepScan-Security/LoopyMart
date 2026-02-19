@@ -1,6 +1,14 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
+import { useWishlist } from '@/composables/useWishlist'
+import WishlistPicker from '@/components/WishlistPicker.vue'
+
+const { isInAnyWishlist, openPicker, ensureLoaded } = useWishlist()
+
+onMounted(() => {
+  ensureLoaded()
+})
 
 const props = defineProps({
   product: {
@@ -83,10 +91,16 @@ const isAssured = computed(() => {
         class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full
                bg-white shadow-sm hover:shadow-md transition-shadow opacity-0 
                group-hover:opacity-100"
-        @click.prevent.stop
+        @click.prevent.stop="openPicker(product.id, product.name)"
       >
-        <svg width="20" height="20" class="w-5 h-5 text-text-secondary hover:text-red-500 transition-colors" 
-             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg
+          width="20" height="20"
+          class="w-5 h-5 transition-colors"
+          :class="isInAnyWishlist(product.id) ? 'text-red-500' : 'text-text-secondary hover:text-red-500'"
+          :fill="isInAnyWishlist(product.id) ? 'currentColor' : 'none'"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                 d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
         </svg>
@@ -180,6 +194,8 @@ const isAssured = computed(() => {
       <p class="text-xs text-loopymart-green">{{ discountPercent }}% off</p>
     </div>
   </RouterLink>
+  <!-- Global WishlistPicker modal (rendered once, teleported to body) -->
+  <WishlistPicker />
 </template>
 
 <style scoped>

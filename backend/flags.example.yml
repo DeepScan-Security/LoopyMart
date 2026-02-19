@@ -16,3 +16,8 @@ challenges:
       - "part2"
       - "}"
     separator: ""
+
+  # CTF Challenge: Server-Side Template Injection via wishlist share-preview.
+  # Set this to a real flag value in your flags.yml.
+  wishlist_ssti:
+    flag: "CTF{t3mpl4t3_1nj3ct10n_ftw}"

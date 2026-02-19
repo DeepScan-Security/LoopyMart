@@ -3,6 +3,10 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { products, cart } from '@/api'
 import client from '@/api/client'
+import { useWishlist } from '@/composables/useWishlist'
+import WishlistPicker from '@/components/WishlistPicker.vue'
+
+const { isInAnyWishlist, openPicker, ensureLoaded } = useWishlist()
 
 const route = useRoute()
 const product = ref(null)
@@ -37,6 +41,7 @@ const productImages = computed(() => {
 })
 
 onMounted(async () => {
+  ensureLoaded()
   try {
     const res = await products.get(route.params.id)
     product.value = res.data
@@ -215,11 +220,19 @@ function getRatingBarWidth(stars) {
                   />
                 </div>
                 <!-- Wishlist Button -->
-                <button class="absolute top-4 right-4 w-10 h-10 flex items-center justify-center 
-                               rounded-full border border-loopymart-gray-dark bg-white 
-                               hover:border-loopymart-blue transition-colors">
-                  <svg width="20" height="20" class="w-5 h-5 text-text-secondary hover:text-red-500" 
-                       fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button
+                  class="absolute top-4 right-4 w-10 h-10 flex items-center justify-center 
+                         rounded-full border bg-white hover:border-loopymart-blue transition-colors"
+                  :class="isInAnyWishlist(product?.id) ? 'border-red-400' : 'border-loopymart-gray-dark'"
+                  @click="openPicker(product.id, product.name)"
+                >
+                  <svg
+                    width="20" height="20"
+                    class="w-5 h-5 transition-colors"
+                    :class="isInAnyWishlist(product?.id) ? 'text-red-500' : 'text-text-secondary hover:text-red-500'"
+                    :fill="isInAnyWishlist(product?.id) ? 'currentColor' : 'none'"
+                    stroke="currentColor" viewBox="0 0 24 24"
+                  >
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                           d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
                   </svg>
@@ -628,4 +641,5 @@ function getRatingBarWidth(stars) {
       </template>
     </div>
   </div>
+  <WishlistPicker />
 </template>
