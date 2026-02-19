@@ -49,6 +49,26 @@ function imageUrl(url) {
   if (url.startsWith('/static/')) return staticUrl + url
   return url
 }
+
+// Handles both legacy string addresses and new structured object addresses
+function formatShipTo(addr) {
+  if (!addr) return 'N/A'
+  if (typeof addr === 'string') return addr
+  const parts = [addr.full_name, addr.city, addr.pincode ? `– ${addr.pincode}` : ''].filter(Boolean)
+  return parts.join(', ')
+}
+
+function formatFullAddress(addr) {
+  if (!addr) return 'No address provided'
+  if (typeof addr === 'string') return addr
+  return [
+    `${addr.full_name}${addr.phone ? ' · ' + addr.phone : ''}`,
+    addr.address_line1 + (addr.address_line2 ? ', ' + addr.address_line2 : ''),
+    addr.landmark ? 'Near ' + addr.landmark : '',
+    `${addr.city}, ${addr.state} – ${addr.pincode}`,
+    addr.country || 'India',
+  ].filter(Boolean).join('\n')
+}
 </script>
 
 <template>
@@ -130,7 +150,7 @@ function imageUrl(url) {
               <div>
                 <p class="text-xs text-text-secondary">SHIP TO</p>
                 <p class="text-sm font-medium text-text-primary line-clamp-1 max-w-[200px]">
-                  {{ order.shipping_address }}
+                  {{ formatShipTo(order.shipping_address) }}
                 </p>
               </div>
               <div class="ml-auto flex items-center gap-4">

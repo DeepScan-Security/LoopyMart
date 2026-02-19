@@ -122,7 +122,7 @@ async def create_payment(
     order = await order_create(
         user_id=current_user.id,
         total=total,
-        shipping_address=data.shipping_address,
+        shipping_address=data.shipping_address.model_dump(),
         items=order_items,
         status="pending",
         razorpay_order_id=razorpay_order_id,
@@ -227,7 +227,7 @@ async def create_order(
     order = await order_create(
         user_id=current_user.id,
         total=total,
-        shipping_address=data.shipping_address,
+        shipping_address=data.shipping_address.model_dump(),
         items=order_items,
         status="pending",
     )

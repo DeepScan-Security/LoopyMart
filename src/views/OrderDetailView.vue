@@ -83,6 +83,20 @@ watch(() => route.params.id, (newId) => {
     fetchOrder(newId)
   }
 })
+
+// Handles both legacy string and structured ShippingAddressSchema objects
+function formatShippingAddress(addr) {
+  if (!addr) return 'No address provided'
+  if (typeof addr === 'string') return addr
+  return [
+    `${addr.full_name || ''}${addr.phone ? ' · ' + addr.phone : ''}`,
+    addr.address_line1 + (addr.address_line2 ? ', ' + addr.address_line2 : ''),
+    addr.landmark ? 'Near ' + addr.landmark : '',
+    `${addr.city || ''}, ${addr.state || ''} – ${addr.pincode || ''}`,
+    addr.country || 'India',
+    addr.address_type ? `[${addr.address_type}]` : '',
+  ].filter(Boolean).join('\n')
+}
 </script>
 
 <template>
@@ -207,7 +221,7 @@ watch(() => route.params.id, (newId) => {
           <h3>Shipping Address</h3>
           <div class="address-content">
             <div class="address-icon">📍</div>
-            <p>{{ order.shipping_address }}</p>
+            <p style="white-space: pre-line;">{{ formatShippingAddress(order.shipping_address) }}</p>
           </div>
         </div>
 

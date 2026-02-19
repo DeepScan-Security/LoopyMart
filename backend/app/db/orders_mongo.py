@@ -6,7 +6,7 @@ Orders are stored in MongoDB with the following schema:
     "user_id": int (references SQL user),
     "total": float,
     "status": str ("pending", "paid", "shipped", "delivered", "cancelled"),
-    "shipping_address": str,
+    "shipping_address": dict | str,  # structured ShippingAddressSchema dict or legacy string
     "items": [
         {
             "product_id": str,
@@ -85,7 +85,7 @@ async def order_list_all(skip: int = 0, limit: int = 100) -> list[dict]:
 async def order_create(
     user_id: int,
     total: float,
-    shipping_address: str,
+    shipping_address: dict | str,
     items: list[dict],
     status: str = "pending",
     razorpay_order_id: str | None = None,
@@ -144,7 +144,7 @@ async def order_update(
     order_id: str,
     *,
     status: str | None = None,
-    shipping_address: str | None = None,
+    shipping_address: dict | str | None = None,
     razorpay_order_id: str | None = None,
     razorpay_payment_id: str | None = None,
 ) -> dict | None:
