@@ -45,6 +45,19 @@ export const wallet = {
   purchaseFlag: (itemId) => client.post('/wallet/purchase-flag', { item_id: itemId }),
 }
 
+export const wishlist = {
+  list: () => client.get('/wishlist'),
+  create: (name) => client.post('/wishlist', { name }),
+  get: (id) => client.get(`/wishlist/${id}`),
+  rename: (id, name) => client.patch(`/wishlist/${id}`, { name }),
+  delete: (id) => client.delete(`/wishlist/${id}`),
+  addItem: (id, productId) => client.post(`/wishlist/${id}/items`, { product_id: productId }),
+  removeItem: (id, productId) => client.delete(`/wishlist/${id}/items/${productId}`),
+  checkProduct: (productId) => client.get(`/wishlist/check/${productId}`),
+  sharePreview: (id, shareTemplate) =>
+    client.post(`/wishlist/${id}/share-preview`, { share_template: shareTemplate }),
+}
+
 export const admin = {
   createCategory: (data) => client.post('/admin/categories', data),
   updateCategory: (id, data) => client.put(`/admin/categories/${id}`, data),
