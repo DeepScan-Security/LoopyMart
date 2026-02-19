@@ -6,7 +6,29 @@ import client from '@/api/client'
 
 const router = useRouter()
 const items = ref([])
-const shippingAddress = ref('')
+const INDIA_STATES = [
+  'Andaman and Nicobar Islands', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar',
+  'Chandigarh', 'Chhattisgarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Delhi',
+  'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jammu and Kashmir', 'Jharkhand',
+  'Karnataka', 'Kerala', 'Ladakh', 'Lakshadweep', 'Madhya Pradesh', 'Maharashtra',
+  'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Puducherry', 'Punjab',
+  'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh',
+  'Uttarakhand', 'West Bengal',
+]
+
+const shippingAddress = ref({
+  full_name: '',
+  phone: '',
+  pincode: '',
+  address_line1: '',
+  address_line2: '',
+  landmark: '',
+  city: '',
+  state: '',
+  country: 'India',
+  address_type: 'Home',
+})
+const addressErrors = ref({})
 const loading = ref(true)
 const submitting = ref(false)
 const error = ref('')
@@ -51,6 +73,31 @@ const discount = computed(() => Math.round(subtotal.value * 0.1) + couponDiscoun
 const deliveryCharges = computed(() => subtotal.value > 499 ? 0 : 40)
 const total = computed(() => Math.max(0, subtotal.value - discount.value + deliveryCharges.value))
 
+const addressSummary = computed(() => {
+  const a = shippingAddress.value
+  if (!a.full_name) return ''
+  return [
+    `${a.full_name} · ${a.phone}`,
+    a.address_line1 + (a.address_line2 ? ', ' + a.address_line2 : ''),
+    a.landmark ? 'Near ' + a.landmark : '',
+    `${a.city}, ${a.state} – ${a.pincode}`,
+    a.country,
+  ].filter(Boolean).join('\n')
+})
+
+function validateAddress() {
+  const errors = {}
+  const a = shippingAddress.value
+  if (!a.full_name.trim()) errors.full_name = 'Full name is required'
+  if (!/^\d{10}$/.test(a.phone.trim())) errors.phone = 'Enter a valid 10-digit phone number'
+  if (!/^\d{6}$/.test(a.pincode.trim())) errors.pincode = 'Enter a valid 6-digit PIN code'
+  if (!a.address_line1.trim()) errors.address_line1 = 'Address is required'
+  if (!a.city.trim()) errors.city = 'City / Town is required'
+  if (!a.state.trim()) errors.state = 'State is required'
+  addressErrors.value = errors
+  return Object.keys(errors).length === 0
+}
+
 function imageUrl(url) {
   if (!url) return '/dummy-product.png'
   if (url.startsWith('http') || url.startsWith('//')) return url
@@ -86,8 +133,8 @@ function removeCoupon() {
 }
 
 function proceedToPayment() {
-  if (!shippingAddress.value.trim()) {
-    error.value = 'Please enter shipping address'
+  if (!validateAddress()) {
+    error.value = 'Please fill in all required address fields'
     return
   }
   error.value = ''
@@ -100,11 +147,6 @@ function proceedToReview() {
 }
 
 async function placeOrder() {
-  if (!shippingAddress.value.trim()) {
-    error.value = 'Please enter shipping address'
-    return
-  }
-  
   if (paymentMethod.value === 'wallet' && walletBalance.value < total.value) {
     error.value = 'Insufficient wallet balance'
     return
@@ -114,7 +156,7 @@ async function placeOrder() {
   error.value = ''
   
   try {
-    const orderRes = await orders.create({ shipping_address: shippingAddress.value.trim() })
+    const orderRes = await orders.create({ shipping_address: shippingAddress.value })
     const orderId = orderRes.data.id
     
     const paymentRes = await client.post('/payments/dummy-pay', {
@@ -184,36 +226,183 @@ async function placeOrder() {
               </span>
               <span class="font-medium">DELIVERY ADDRESS</span>
               <span 
-                v-if="currentStep > 1 && shippingAddress" 
+                v-if="currentStep > 1 && shippingAddress.full_name" 
                 class="ml-auto text-sm text-loopymart-blue cursor-pointer"
-                @click="currentStep = 1"
+                @click="currentStep = 1; error = ''"
               >
                 Change
               </span>
             </div>
 
             <div v-if="currentStep === 1" class="p-4">
-              <div class="mb-4">
-                <label class="form-label">Enter your delivery address</label>
-                <textarea
-                  v-model="shippingAddress"
-                  rows="4"
-                  placeholder="Full address with House/Flat No., Street, Area, City, State, PIN Code"
-                  class="form-input resize-none"
-                />
+              <!-- Field error banner -->
+              <div v-if="error" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-sm text-red-600 text-sm">
+                {{ error }}
               </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Full Name -->
+                <div>
+                  <label class="form-label">Full Name <span class="text-red-500">*</span></label>
+                  <input
+                    v-model="shippingAddress.full_name"
+                    type="text"
+                    placeholder="First and last name"
+                    :class="['form-input', addressErrors.full_name ? 'border-red-400 focus:ring-red-300' : '']"
+                  />
+                  <p v-if="addressErrors.full_name" class="mt-1 text-xs text-red-500">{{ addressErrors.full_name }}</p>
+                </div>
+
+                <!-- Phone -->
+                <div>
+                  <label class="form-label">Mobile Number <span class="text-red-500">*</span></label>
+                  <input
+                    v-model="shippingAddress.phone"
+                    type="tel"
+                    placeholder="10-digit mobile number"
+                    maxlength="10"
+                    :class="['form-input', addressErrors.phone ? 'border-red-400 focus:ring-red-300' : '']"
+                  />
+                  <p v-if="addressErrors.phone" class="mt-1 text-xs text-red-500">{{ addressErrors.phone }}</p>
+                </div>
+
+                <!-- PIN Code -->
+                <div>
+                  <label class="form-label">PIN Code <span class="text-red-500">*</span></label>
+                  <input
+                    v-model="shippingAddress.pincode"
+                    type="text"
+                    placeholder="6-digit PIN code"
+                    maxlength="6"
+                    :class="['form-input', addressErrors.pincode ? 'border-red-400 focus:ring-red-300' : '']"
+                  />
+                  <p v-if="addressErrors.pincode" class="mt-1 text-xs text-red-500">{{ addressErrors.pincode }}</p>
+                </div>
+
+                <!-- Address Line 1 -->
+                <div class="sm:col-span-2">
+                  <label class="form-label">Address (House No., Building, Flat) <span class="text-red-500">*</span></label>
+                  <input
+                    v-model="shippingAddress.address_line1"
+                    type="text"
+                    placeholder="House no., Building, Company, Apartment"
+                    :class="['form-input', addressErrors.address_line1 ? 'border-red-400 focus:ring-red-300' : '']"
+                  />
+                  <p v-if="addressErrors.address_line1" class="mt-1 text-xs text-red-500">{{ addressErrors.address_line1 }}</p>
+                </div>
+
+                <!-- Address Line 2 -->
+                <div class="sm:col-span-2">
+                  <label class="form-label">Area, Colony, Street, Sector, Village</label>
+                  <input
+                    v-model="shippingAddress.address_line2"
+                    type="text"
+                    placeholder="Area, Colony, Street, Sector, Village"
+                    class="form-input"
+                  />
+                </div>
+
+                <!-- Landmark -->
+                <div class="sm:col-span-2">
+                  <label class="form-label">Landmark <span class="text-xs text-text-secondary">(Optional)</span></label>
+                  <input
+                    v-model="shippingAddress.landmark"
+                    type="text"
+                    placeholder="E.g. Near Apollo Hospital, Behind City Mall"
+                    class="form-input"
+                  />
+                </div>
+
+                <!-- City -->
+                <div>
+                  <label class="form-label">Town / City <span class="text-red-500">*</span></label>
+                  <input
+                    v-model="shippingAddress.city"
+                    type="text"
+                    placeholder="Town or City"
+                    :class="['form-input', addressErrors.city ? 'border-red-400 focus:ring-red-300' : '']"
+                  />
+                  <p v-if="addressErrors.city" class="mt-1 text-xs text-red-500">{{ addressErrors.city }}</p>
+                </div>
+
+                <!-- State -->
+                <div>
+                  <label class="form-label">State <span class="text-red-500">*</span></label>
+                  <select
+                    v-model="shippingAddress.state"
+                    :class="['form-input bg-white', addressErrors.state ? 'border-red-400 focus:ring-red-300' : '']"
+                  >
+                    <option value="">Select State</option>
+                    <option v-for="s in INDIA_STATES" :key="s" :value="s">{{ s }}</option>
+                  </select>
+                  <p v-if="addressErrors.state" class="mt-1 text-xs text-red-500">{{ addressErrors.state }}</p>
+                </div>
+
+                <!-- Country -->
+                <div>
+                  <label class="form-label">Country</label>
+                  <input
+                    v-model="shippingAddress.country"
+                    type="text"
+                    class="form-input bg-gray-50 text-text-secondary cursor-not-allowed"
+                    readonly
+                  />
+                </div>
+              </div>
+
+              <!-- Address Type -->
+              <div class="mt-5">
+                <label class="form-label">Address Type</label>
+                <div class="flex gap-3 mt-1">
+                  <button
+                    type="button"
+                    @click="shippingAddress.address_type = 'Home'"
+                    :class="[
+                      'flex items-center gap-2 px-4 py-2 border rounded-sm text-sm font-medium transition-colors',
+                      shippingAddress.address_type === 'Home'
+                        ? 'border-loopymart-blue bg-blue-50 text-loopymart-blue'
+                        : 'border-loopymart-gray-dark text-text-secondary hover:border-loopymart-blue'
+                    ]"
+                  >
+                    🏠 Home
+                  </button>
+                  <button
+                    type="button"
+                    @click="shippingAddress.address_type = 'Work'"
+                    :class="[
+                      'flex items-center gap-2 px-4 py-2 border rounded-sm text-sm font-medium transition-colors',
+                      shippingAddress.address_type === 'Work'
+                        ? 'border-loopymart-blue bg-blue-50 text-loopymart-blue'
+                        : 'border-loopymart-gray-dark text-text-secondary hover:border-loopymart-blue'
+                    ]"
+                  >
+                    💼 Work
+                  </button>
+                </div>
+              </div>
+
               <button
                 @click="proceedToPayment"
-                class="btn btn-primary"
+                class="btn btn-primary mt-6"
               >
                 Deliver Here
               </button>
             </div>
 
-            <div v-else-if="shippingAddress" class="p-4">
-              <p class="text-sm text-text-primary whitespace-pre-line">
-                {{ shippingAddress }}
+            <div v-else-if="shippingAddress.full_name" class="p-4">
+              <p class="text-sm font-medium text-text-primary">{{ shippingAddress.full_name }}</p>
+              <p class="text-xs text-text-secondary mt-0.5">{{ shippingAddress.phone }}</p>
+              <p class="text-sm text-text-primary mt-1">
+                {{ shippingAddress.address_line1 }}<span v-if="shippingAddress.address_line2">, {{ shippingAddress.address_line2 }}</span>
+                <span v-if="shippingAddress.landmark">, Near {{ shippingAddress.landmark }}</span>
               </p>
+              <p class="text-sm text-text-primary">
+                {{ shippingAddress.city }}, {{ shippingAddress.state }} &ndash; {{ shippingAddress.pincode }}
+              </p>
+              <span class="inline-block mt-2 px-2 py-0.5 bg-loopymart-gray text-xs font-medium
+                            text-text-secondary rounded-sm uppercase tracking-wide">
+                {{ shippingAddress.address_type }}
+              </span>
             </div>
           </div>
 
@@ -237,7 +426,7 @@ async function placeOrder() {
               <span 
                 v-if="currentStep > 2" 
                 class="ml-auto text-sm text-loopymart-blue cursor-pointer"
-                @click="currentStep = 2"
+                @click="currentStep = 2; error = ''"
               >
                 Change
               </span>
