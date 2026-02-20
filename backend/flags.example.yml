@@ -22,6 +22,12 @@ challenges:
   wishlist_ssti:
     flag: "CTF{t3mpl4t3_1nj3ct10n_ftw}"
 
+  # CTF Challenge: SSRF via Invoice Template URL.
+  # The backend fetches a user-supplied URL without scheme validation.
+  # Exploit: supply file:///tmp/ssrf_flag.txt as the invoice_url.
+  ssrf_invoice:
+    flag: "CTF{55rf_f1l3_r34d_pwn3d}"
+
 # AI Chat bot configuration
 chat:
   system_prompt: |

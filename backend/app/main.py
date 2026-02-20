@@ -17,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api import admin, auth, cart, categories, chat, ctf, kyc, orders, payments, products, ratings, spin, wallet, wishlist
 from app.core.config import settings
+from app.core.flags import get_flag
 from app.db.mongo import close_mongo, init_mongo
 from app.db.seed import seed_db
 from app.db.session import close_db, get_session_maker, init_db
@@ -52,6 +53,15 @@ async def lifespan(app: FastAPI):
     async with session_maker() as db:
         await seed_db(db)
         await db.commit()
+
+    # Write SSRF challenge flag to a "sensitive" file on the filesystem.
+    # Contestants reach this via file:///tmp/ssrf_flag.txt through the
+    # vulnerable invoice-template-URL fetch endpoint.
+    try:
+        ssrf_flag = get_flag("ssrf_invoice")
+        Path("/tmp/ssrf_flag.txt").write_text(ssrf_flag)
+    except Exception:
+        pass  # Non-fatal — don't crash startup if flags.yml is missing
 
     yield
 
