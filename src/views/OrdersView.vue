@@ -1,11 +1,34 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, reactive } from 'vue'
 import { RouterLink } from 'vue-router'
 import { orders } from '@/api'
 
 const list = ref([])
 const loading = ref(true)
 const filter = ref('all')
+
+// Per-order invoice download state
+const invoiceDownloading = reactive({})
+
+async function downloadInvoice(orderId) {
+  invoiceDownloading[orderId] = true
+  try {
+    const res = await orders.generateInvoice(orderId)
+    const blob = new Blob([res.data], { type: 'application/pdf' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `invoice-${orderId.slice(0, 8)}.pdf`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  } catch (_) {
+    alert('Failed to generate invoice. Please try again.')
+  } finally {
+    invoiceDownloading[orderId] = false
+  }
+}
 
 const statusFilters = [
   { id: 'all', label: 'All Orders' },
@@ -233,9 +256,22 @@ function formatFullAddress(addr) {
                   Order is being processed
                 </span>
               </div>
-              <div class="flex gap-2">
+              <div class="flex gap-2 items-center">
                 <button class="text-sm text-loopymart-blue hover:underline">
                   Track Order
+                </button>
+                <span class="text-text-hint">|</span>
+                <button
+                  class="text-sm text-loopymart-blue hover:underline flex items-center gap-1"
+                  :disabled="invoiceDownloading[order.id]"
+                  @click="downloadInvoice(order.id)"
+                >
+                  <span
+                    v-if="invoiceDownloading[order.id]"
+                    class="inline-block w-3 h-3 border-2 border-loopymart-blue border-t-transparent
+                           rounded-full animate-spin"
+                  ></span>
+                  {{ invoiceDownloading[order.id] ? 'Generating\u2026' : 'Download Invoice' }}
                 </button>
                 <span class="text-text-hint">|</span>
                 <button class="text-sm text-loopymart-blue hover:underline">
@@ -243,6 +279,7 @@ function formatFullAddress(addr) {
                 </button>
               </div>
             </div>
+
           </div>
         </div>
 

@@ -36,6 +36,8 @@ export const orders = {
   create: (data) => client.post('/orders', data),
   createPayment: (data) => client.post('/orders/create-payment', data),
   verifyPayment: (data) => client.post('/orders/verify-payment', data),
+  generateInvoice: (orderId) =>
+    client.get(`/orders/${orderId}/invoice`, { responseType: 'blob' }),
 }
 
 export const wallet = {
