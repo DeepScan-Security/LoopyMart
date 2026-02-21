@@ -63,6 +63,15 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass  # Non-fatal — don't crash startup if flags.yml is missing
 
+    # Write Path Traversal challenge flag to a predictable filesystem path.
+    # Contestants reach this via GET /auth/profile-picture?filename=../../../../../../tmp/path_traversal_flag.txt
+    try:
+        pt_flag = get_flag("path_traversal")
+        if pt_flag:
+            Path("/tmp/path_traversal_flag.txt").write_text(pt_flag)
+    except Exception:
+        pass  # Non-fatal — don't crash startup if flags.yml is missing
+
     yield
 
     # Cleanup on shutdown
