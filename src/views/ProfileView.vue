@@ -18,6 +18,8 @@ const profile = ref({
 // Profile picture
 const profilePicture = ref(null)
 const profilePicturePreview = ref(null)
+// Blob URL created by fetching the protected endpoint via axios (carries the JWT)
+const profilePictureBlobUrl = ref(null)
 
 // KYC data
 const kyc = ref(null)
@@ -43,12 +45,41 @@ onMounted(async () => {
       address: user.value.address || '',
     }
     kyc.value = kycRes.data
+    // Fetch profile picture through the authenticated endpoint so the JWT is
+    // included in the request (plain <img src> would fail with 401).
+    if (user.value.profile_picture_url) {
+      await loadProfilePictureBlobUrl()
+    }
   } catch (e) {
     error.value = 'Failed to load profile'
   } finally {
     loading.value = false
   }
 })
+
+/**
+ * Fetch the profile picture via the authenticated download endpoint and store
+ * the result as a local blob URL so the <img> tag can display it without
+ * making a separate unauthenticated browser request.
+ *
+ * The endpoint path — GET /auth/profile-picture?filename=<name> — is the
+ * CTF path-traversal sink.  Fetching through axios ensures the JWT is sent.
+ */
+async function loadProfilePictureBlobUrl() {
+  if (!user.value?.profile_picture_url) return
+  const filename = user.value.profile_picture_url.split('/').pop()
+  try {
+    const res = await client.get('/auth/profile-picture', {
+      params: { filename },
+      responseType: 'blob',
+    })
+    // Revoke the previous object URL to avoid memory leaks
+    if (profilePictureBlobUrl.value) URL.revokeObjectURL(profilePictureBlobUrl.value)
+    profilePictureBlobUrl.value = URL.createObjectURL(res.data)
+  } catch {
+    profilePictureBlobUrl.value = null
+  }
+}
 
 function handleProfilePictureChange(e) {
   const file = e.target.files[0]
@@ -89,6 +120,8 @@ async function uploadProfilePicture() {
     success.value = 'Profile picture updated!'
     profilePicture.value = null
     profilePicturePreview.value = null
+    // Reload the blob URL so the sidebar avatar refreshes immediately
+    await loadProfilePictureBlobUrl()
   } catch (e) {
     error.value = e.response?.data?.detail || 'Failed to upload picture'
   }
@@ -173,7 +206,7 @@ const tabs = [
               <div class="w-14 h-14 flex-shrink-0">
                 <img 
                   v-if="user.profile_picture_url" 
-                  :src="user.profile_picture_url" 
+                  :src="profilePictureBlobUrl" 
                   alt="Profile"
                   class="w-full h-full rounded-full object-cover"
                 />
@@ -283,7 +316,7 @@ const tabs = [
                 <div class="w-24 h-24 flex-shrink-0">
                   <img 
                     v-if="profilePicturePreview || user.profile_picture_url" 
-                    :src="profilePicturePreview || user.profile_picture_url" 
+                    :src="profilePicturePreview || profilePictureBlobUrl" 
                     alt="Profile"
                     class="w-full h-full rounded-full object-cover border-4 border-loopymart-gray"
                   />

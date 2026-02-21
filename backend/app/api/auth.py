@@ -5,6 +5,7 @@ User profile and authentication API routes.
 import secrets
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from pathlib import Path
@@ -238,6 +239,43 @@ async def reset_password(
     await db.commit()
     
     return {"message": "Password reset successful. You can now login with your new password."}
+
+
+@router.get("/profile-picture")
+async def serve_profile_picture(
+    filename: str,
+    current_user: User = Depends(get_current_user),
+) -> FileResponse:
+    """
+    Return a profile-picture file from the uploads directory by filename.
+
+    [INTENTIONALLY VULNERABLE – CTF challenge: Path Traversal]
+    The ``filename`` query-parameter is joined directly to the uploads
+    directory path with no canonicalization or boundary check.  An attacker
+    can supply ``../`` sequences (raw or URL-encoded) to escape the uploads
+    folder and read arbitrary files on the server.
+
+    Example exploit:
+        GET /auth/profile-picture?filename=../../../../../../tmp/path_traversal_flag.txt
+
+    CWE-22  Improper Limitation of a Pathname to a Restricted Directory
+    (Path Traversal)
+    """
+    from app.main import get_uploads_dir
+
+    uploads_dir = get_uploads_dir()
+
+    # ⚠️  VULNERABLE: filename is appended without resolving or validating
+    # that the result stays inside uploads_dir.
+    file_path = uploads_dir / filename
+
+    if not file_path.exists() or not file_path.is_file():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="File not found",
+        )
+
+    return FileResponse(str(file_path), media_type="application/octet-stream")
 
 
 @router.post("/upgrade-black", response_model=UserResponse)

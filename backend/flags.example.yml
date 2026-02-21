@@ -28,6 +28,13 @@ challenges:
   ssrf_invoice:
     flag: "CTF{55rf_f1l3_r34d_pwn3d}"
 
+  # CTF Challenge: Path Traversal via Profile Picture Download.
+  # The /auth/profile-picture endpoint joins the user-supplied filename
+  # directly to the uploads directory without canonicalization checks.
+  # Exploit: supply ../../../../../../tmp/path_traversal_flag.txt as filename.
+  path_traversal:
+    flag: "CTF{p4th_tr4v3rs4l_pr0f1l3_pwn3d}"
+
 # AI Chat bot configuration
 chat:
   system_prompt: |
