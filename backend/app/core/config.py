@@ -138,14 +138,25 @@ class Settings(BaseSettings):
     )
 
     # Admin seed credentials (for initial setup only)
+    # ADMIN_EMAIL can be overridden via the ADMIN_EMAIL env var / config.local.yml
+    # ADMIN_PASSWORD defaults to "admin123" — change it in production!
     admin_email: str = Field(
-        default_factory=lambda: os.getenv("ADMIN_EMAIL", "")
+        default_factory=lambda: get_yaml_value(
+            _yaml_config, "app", "admin_email",
+            default=os.getenv("ADMIN_EMAIL", "admin@something.com")
+        )
     )
     admin_password: str = Field(
-        default_factory=lambda: os.getenv("ADMIN_PASSWORD", "")
+        default_factory=lambda: get_yaml_value(
+            _yaml_config, "app", "admin_password",
+            default=os.getenv("ADMIN_PASSWORD", "admin123")
+        )
     )
     admin_name: str = Field(
-        default_factory=lambda: os.getenv("ADMIN_NAME", "Admin")
+        default_factory=lambda: get_yaml_value(
+            _yaml_config, "app", "admin_name",
+            default=os.getenv("ADMIN_NAME", "Admin")
+        )
     )
 
     # API settings

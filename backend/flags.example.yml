@@ -35,6 +35,13 @@ challenges:
   path_traversal:
     flag: "CTF{p4th_tr4v3rs4l_pr0f1l3_pwn3d}"
 
+  # CTF Challenge: SQL Injection via Forgot Password email lookup.
+  # The /auth/forgot-password endpoint interpolates the email field directly
+  # into a raw SQL query.  EmailStr validation was intentionally removed.
+  # Exploit: POST {"email": "' OR '1'='1' --"} → flag returned in response.
+  sqli_forgot:
+    flag: "CTF{sql1_forg0t_p4ssw0rd_pwn3d}"
+
 # AI Chat bot configuration
 chat:
   system_prompt: |

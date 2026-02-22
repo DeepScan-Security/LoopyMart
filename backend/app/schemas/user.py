@@ -48,7 +48,9 @@ class UserProfileUpdate(BaseModel):
 
 
 class ForgotPasswordRequest(BaseModel):
-    email: EmailStr
+    # ⚠️ INTENTIONALLY VULNERABLE (CTF: SQLi) — email is a plain str so that
+    # injection payloads are not rejected by Pydantic's EmailStr validation.
+    email: str
 
 
 class ResetPasswordRequest(BaseModel):

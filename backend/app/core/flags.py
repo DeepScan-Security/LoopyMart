@@ -14,25 +14,36 @@ logger = logging.getLogger(__name__)
 _BACKEND_ROOT = Path(__file__).resolve().parent.parent.parent
 _FLAGS_PATH = _BACKEND_ROOT / "flags.yml"
 _CACHED: dict[str, Any] | None = None
+_CACHED_MTIME: float | None = None
 
 
 def _load_flags_yaml() -> dict[str, Any]:
-    """Load flags.yml; return empty dict if missing or invalid. Cached at module level."""
-    global _CACHED
-    if _CACHED is not None:
-        return _CACHED
+    """Load flags.yml; return empty dict if missing or invalid.
+    Cached at module level but invalidated automatically whenever the file
+    modification time changes (so editing flags.yml takes effect without a
+    server restart)."""
+    global _CACHED, _CACHED_MTIME
     if not _FLAGS_PATH.exists():
         logger.warning("Flags file not found: %s (copy from flags.example.yml)", _FLAGS_PATH)
         _CACHED = {}
+        _CACHED_MTIME = None
+        return _CACHED
+    try:
+        current_mtime = _FLAGS_PATH.stat().st_mtime
+    except OSError:
+        current_mtime = None
+    if _CACHED is not None and current_mtime == _CACHED_MTIME:
         return _CACHED
     try:
         with open(_FLAGS_PATH, "r") as f:
             data = yaml.safe_load(f) or {}
         _CACHED = data
+        _CACHED_MTIME = current_mtime
         return _CACHED
     except Exception as e:
         logger.exception("Failed to load flags from %s: %s", _FLAGS_PATH, e)
         _CACHED = {}
+        _CACHED_MTIME = None
         return _CACHED
 
 

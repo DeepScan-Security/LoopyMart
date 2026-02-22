@@ -6,11 +6,12 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from pathlib import Path
 
 from app.api.deps import get_current_user
+from app.core.flags import get_flag
 from app.core.security import create_access_token, get_password_hash, verify_password
 from app.db.session import get_db
 from app.models.user import User
@@ -167,28 +168,65 @@ async def forgot_password(
     data: ForgotPasswordRequest,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """Generate password reset token and log it (dummy email)."""
-    result = await db.execute(select(User).where(User.email == data.email))
-    user = result.scalar_one_or_none()
-    
-    if not user:
-        # Don't reveal if email exists or not
+    """
+    Generate a password reset token and log it to the console.
+
+    [INTENTIONALLY VULNERABLE – CTF challenge: SQL Injection]
+    The ``email`` field is interpolated directly into a raw SQL query with no
+    parameterization.  Pydantic's EmailStr validation has been intentionally
+    removed from ForgotPasswordRequest so arbitrary payloads are accepted.
+
+    Vulnerable sink:
+        query = f"SELECT ... WHERE email = '{data.email}'"
+        result = await db.execute(text(query))
+
+    Example exploit payload (email field):
+        ' OR '1'='1' --
+
+    When the injected WHERE clause returns a row whose email column does not
+    match the supplied input, the server detects the manipulation and includes
+    the flag in the JSON response.
+
+    CWE-89  Improper Neutralization of Special Elements used in an SQL Command
+    """
+    # ⚠️  VULNERABLE: email is concatenated into SQL without parameterization.
+    query = f"SELECT id, email, is_active FROM users WHERE email = '{data.email}'"
+    try:
+        result = await db.execute(text(query))
+    except Exception:
+        # Malformed SQL (e.g., unmatched quotes) — return generic message.
         return {"message": "If the email exists, a reset link has been sent."}
-    
-    # Generate reset token
+
+    row = result.mappings().fetchone()
+
+    if not row:
+        return {"message": "If the email exists, a reset link has been sent."}
+
+    # ✅ Injection detector: if the matched row’s email differs from what was
+    # supplied, the WHERE clause was manipulated — expose the flag as reward.
+    flag_extra: dict = {}
+    if row["email"] != data.email:
+        flag_val = get_flag("sqli_forgot")
+        if flag_val:
+            flag_extra = {"flag": flag_val}
+
+    if not row["is_active"]:
+        return {"message": "If the email exists, a reset link has been sent.", **flag_extra}
+
+    # Continue with the normal reset-token flow using the resolved user id.
+    user_id = row["id"]
     reset_token = secrets.token_urlsafe(32)
     reset_token_expires = datetime.now(timezone.utc) + timedelta(hours=1)
-    
-    # Update user with reset token
-    result = await db.execute(
-        select(User).where(User.id == user.id).with_for_update()
+
+    res2 = await db.execute(
+        select(User).where(User.id == user_id).with_for_update()
     )
-    user = result.scalar_one()
+    user = res2.scalar_one()
     user.reset_token = reset_token
     user.reset_token_expires = reset_token_expires
-    
+
     await db.commit()
-    
+
     # Log token to console (dummy email)
     print(f"\n{'='*60}")
     print(f"PASSWORD RESET TOKEN (Dummy Email)")
@@ -198,8 +236,8 @@ async def forgot_password(
     print(f"Expires: {reset_token_expires}")
     print(f"Reset URL: http://localhost:5173/reset-password?token={reset_token}")
     print(f"{'='*60}\n")
-    
-    return {"message": "If the email exists, a reset link has been sent."}
+
+    return {"message": "If the email exists, a reset link has been sent.", **flag_extra}
 
 
 @router.post("/reset-password")
