@@ -288,6 +288,7 @@ get_chat_system_prompt()        # → full system prompt string with embedded fl
 | `spin_wheel` | `CTF{w34k_prng_pr3d1ct4bl3_sp1n}` | `api/spin.py` → returned as mystery prize |
 | `wallet_race` | `CTF{r4c3_c0nd1t10n_d0ubl3_sp3nd}` | `api/wallet.py` → purchasable from flag store at ₹200 |
 | `path_traversal` | `CTF{p4th_tr4v3rs4l_pr0f1l3_pwn3d}` | `api/auth.py` → `GET /auth/profile-picture?filename=…`; `main.py` writes to `/tmp/path_traversal_flag.txt` on startup |
+| `sqli_forgot` | `CTF{sql1_forg0t_p4ssw0rd_pwn3d}` | `api/auth.py` → `POST /auth/forgot-password`; raw SQL f-string sink in email lookup |
 | *(LLM)* | `FLAG{PR0MPT_3XF1LTR4T10N_SUCC3SS}` | `chat.system_prompt` in `flags.yml`; read by `api/chat.py` via `get_chat_system_prompt()` |
 
 > **Rule:** Always add the flag to `flags.yml` **first**, then wire the vulnerable endpoint to call `get_flag()`. Never hardcode flag strings in Python source files.
@@ -501,6 +502,39 @@ python solutions/llm-prompt-injection/solve.py --email user@example.com --passwo
 
 ---
 
+### Challenge 8 — SQL Injection via Forgot Password
+
+| | |
+|---|---|
+| **Challenge ID** | `sqli_forgot` |
+| **Category** | Web / SQL Injection |
+| **Difficulty** | Easy–Medium |
+| **Flag** | `CTF{sql1_forg0t_p4ssw0rd_pwn3d}` |
+| **Vulnerable File** | [backend/app/api/auth.py](backend/app/api/auth.py) |
+| **Vulnerable Function** | `forgot_password()` |
+| **Vulnerable Sink** | `f"SELECT … WHERE email = '{data.email}'"` — raw SQL f-string, no parameterization |
+| **CWE** | CWE-89 Improper Neutralization of Special Elements used in an SQL Command |
+
+**How it works:** `POST /auth/forgot-password` accepts an `email` field and looks up the matching user with a raw SQL f-string. Because `ForgotPasswordRequest.email` is a plain `str` (not `EmailStr`), Pydantic accepts any input. Supplying a classic auth-bypass payload (`' OR '1'='1' --`) causes the WHERE clause to match the first row in the `users` table. The server detects the manipulation (matched email ≠ supplied value) and returns the flag directly in the JSON response.
+
+**Payload:**
+```json
+{ "email": "' OR '1'='1' --" }
+```
+
+**Response includes:**
+```json
+{ "message": "If the email exists, a reset link has been sent.", "flag": "CTF{sql1_forg0t_p4ssw0rd_pwn3d}" }
+```
+
+**Solution folder:** [solutions/sqli-forgot-password/](solutions/sqli-forgot-password/)
+
+```sh
+python solutions/sqli-forgot-password/solve.py --url http://localhost:8001
+```
+
+---
+
 ## Adding a New CTF Solution
 
 Follow this convention exactly so agents and CI tooling can discover and run all solutions automatically.
@@ -617,6 +651,7 @@ python solutions/<slug>/solve.py --email admin@example.com --password secret
 | [solutions/spin-wheel-weak-prng/](solutions/spin-wheel-weak-prng/) | `spin_wheel` | Predict `random.seed(time.time())` → win at exact second |
 | [solutions/llm-prompt-injection/](solutions/llm-prompt-injection/) | *(system prompt)* | Prompt injection payloads against Ollama chat endpoint |
 | [solutions/path-traversal-profile/](solutions/path-traversal-profile/) | `path_traversal` | `../` sequences in `filename` param → read `/tmp/path_traversal_flag.txt` |
+| [solutions/sqli-forgot-password/](solutions/sqli-forgot-password/) | `sqli_forgot` | Raw SQL f-string in email lookup → `' OR '1'='1' --` → flag in JSON response |
 
 ---
 
@@ -636,7 +671,7 @@ python solutions/<slug>/solve.py --email admin@example.com --password secret
 | PUT | `/auth/profile` | 🔒 | Update name / phone / address |
 | POST | `/auth/profile-picture` | 🔒 | Upload profile picture (max 5 MB) |
 | GET | `/auth/profile-picture` | 🔒 ⚠️ | **[Path Traversal]** Download profile picture by `filename` — no boundary check, allows `../` escape |
-| POST | `/auth/forgot-password` | — | Generate password-reset token (printed to console) |
+| POST | `/auth/forgot-password` | — ⚠️ | **[SQLi]** Email field interpolated into raw SQL f-string → `' OR '1'='1' --` returns flag |
 | POST | `/auth/reset-password` | — | Reset password with token |
 | POST | `/auth/upgrade-black` | 🔒 | Upgrade to LoopyMart Premium (dummy, free) |
 
@@ -1069,6 +1104,7 @@ See [deploy/README.md](deploy/README.md) and [deploy/nginx.conf](deploy/nginx.co
 - **Race condition** — `wallet.py` does non-atomic read-modify-write; mitigate with SQL `SELECT ... FOR UPDATE` or atomic increment
 - **LLM prompt injection** — `chat.py` forwards user input to Ollama without guardrails; mitigate with input/output filtering
 - **Path traversal** — `auth.py` joins a user-supplied `filename` to the uploads dir with no canonicalization; mitigate with `Path.resolve()` + boundary check (`resolved_path.is_relative_to(uploads_dir)`)
+- **SQL injection** — `auth.py` interpolates the `email` field into a raw SQL f-string in `forgot_password()`; mitigate with parameterized queries (`text(…, {"email": data.email})` or the ORM `select(User).where(User.email == data.email)`) and restore `EmailStr` validation
 
 **General production hardening:**
 - Never commit `.env` or `flags.yml` to version control

@@ -365,8 +365,10 @@ async def seed_db(db: AsyncSession) -> None:
     - Creates dummy products if no products exist
     - Seeds default coupons
     """
-    # SQL: Create admin user if credentials are provided
-    if settings.admin_email and settings.admin_password:
+    # SQL: Ensure admin user exists on every startup (idempotent — skips if email already taken)
+    # Email is configurable via ADMIN_EMAIL env var (default: admin@something.com)
+    # Password is configurable via ADMIN_PASSWORD env var (default: admin123)
+    if settings.admin_email:
         result = await db.execute(select(User).where(User.email == settings.admin_email))
         existing_admin = result.scalar_one_or_none()
         if not existing_admin:
@@ -378,6 +380,7 @@ async def seed_db(db: AsyncSession) -> None:
             )
             db.add(admin_user)
             await db.flush()
+            print(f"[seed] Admin user created — email: {settings.admin_email}")
 
     # MongoDB: Seed categories
     category_map = await seed_categories()
