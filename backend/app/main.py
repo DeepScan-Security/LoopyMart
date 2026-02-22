@@ -15,7 +15,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api import admin, auth, cart, categories, chat, ctf, kyc, orders, payments, products, ratings, spin, wallet, wishlist
+from app.api import admin, auth, cart, categories, chat, ctf, kyc, orders, payments, products, ratings, spin, tickets, wallet, wishlist
 from app.core.config import settings
 from app.core.flags import get_flag
 from app.db.mongo import close_mongo, init_mongo
@@ -116,6 +116,7 @@ app.include_router(ratings.router)
 app.include_router(spin.router)
 app.include_router(wallet.router)
 app.include_router(wishlist.router)
+app.include_router(tickets.router)
 app.include_router(admin.router)
 
 

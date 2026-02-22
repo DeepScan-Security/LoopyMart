@@ -42,6 +42,18 @@ challenges:
   sqli_forgot:
     flag: "CTF{sql1_forg0t_p4ssw0rd_pwn3d}"
 
+  # CTF Challenge: IDOR via Support Tickets — UUID Sandwich Attack.
+  # POST /tickets generates a predictable UUIDv1 token for each ticket.
+  # On every call the server silently inserts a hidden internal ticket
+  # (containing this flag) between the previous and next user ticket.
+  # Because UUIDs are time-ordered, the hidden ticket UUID always falls
+  # between the two UUIDs returned to the attacker ("sandwich").
+  # Exploit: create ticket A, create ticket C, enumerate UUIDs between
+  # A and C via GET /tickets/{uuid} — the endpoint has NO ownership
+  # check so any authenticated user can read any ticket by UUID.
+  idor_uuid_sandwich:
+    flag: "CTF{1d0r_uu1d_s4ndw1ch_pwn3d}"
+
 # AI Chat bot configuration
 chat:
   system_prompt: |

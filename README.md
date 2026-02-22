@@ -128,6 +128,7 @@ graph TD
 | `/flag.txt` | `api/ctf.py` → 403 external / 200 loopback → `get_flag("ssrf_invoice")` |
 | Flag read path | `core/flags.py._load_flags_yaml()` → `backend/flags.yml` (cached in memory) |
 | Startup side-effect | `main.py` → writes `get_flag("ssrf_invoice")` → `/tmp/ssrf_flag.txt` |
+| Create Ticket | `api/tickets.py` → `uuid.uuid1()` × 2 (user + hidden) → MongoDB `support_tickets` ← **IDOR UUID sandwich sink** |
 
 ---
 
@@ -289,6 +290,7 @@ get_chat_system_prompt()        # → full system prompt string with embedded fl
 | `wallet_race` | `CTF{r4c3_c0nd1t10n_d0ubl3_sp3nd}` | `api/wallet.py` → purchasable from flag store at ₹200 |
 | `path_traversal` | `CTF{p4th_tr4v3rs4l_pr0f1l3_pwn3d}` | `api/auth.py` → `GET /auth/profile-picture?filename=…`; `main.py` writes to `/tmp/path_traversal_flag.txt` on startup |
 | `sqli_forgot` | `CTF{sql1_forg0t_p4ssw0rd_pwn3d}` | `api/auth.py` → `POST /auth/forgot-password`; raw SQL f-string sink in email lookup |
+| `idor_uuid_sandwich` | `CTF{1d0r_uu1d_s4ndw1ch_pwn3d}` | `api/tickets.py` → `GET /tickets/{uuid}`; no `user_id` ownership check; flag in hidden internal ticket |
 | *(LLM)* | `FLAG{PR0MPT_3XF1LTR4T10N_SUCC3SS}` | `chat.system_prompt` in `flags.yml`; read by `api/chat.py` via `get_chat_system_prompt()` |
 
 > **Rule:** Always add the flag to `flags.yml` **first**, then wire the vulnerable endpoint to call `get_flag()`. Never hardcode flag strings in Python source files.
@@ -535,6 +537,43 @@ python solutions/sqli-forgot-password/solve.py --url http://localhost:8001
 
 ---
 
+### Challenge 9 — IDOR via Support Tickets (UUID Sandwich Attack)
+
+| | |
+|---|---|
+| **Challenge ID** | `idor_uuid_sandwich` |
+| **Category** | Web / Insecure Direct Object Reference (IDOR) |
+| **Difficulty** | Medium |
+| **Flag** | `CTF{1d0r_uu1d_s4ndw1ch_pwn3d}` |
+| **Vulnerable File** | [backend/app/api/tickets.py](backend/app/api/tickets.py) |
+| **Vulnerable Function** | `get_ticket()` |
+| **Vulnerable Sink** | `ticket_get_by_uuid(ticket_uuid)` — no `user_id` ownership check |
+| **CWE** | CWE-639 Authorization Bypass Through User-Controlled Key |
+
+**How it works:** Every `POST /tickets` atomically creates two documents in MongoDB with `uuid.uuid1()` — the user's public ticket (UUID returned to caller) and a hidden *internal* system ticket (UUID never disclosed). Because UUIDv1 embeds a 60-bit monotonic timestamp, three UUIDs generated in rapid succession are time-ordered:
+
+```
+uuid_A  <  uuid_B (hidden, contains flag)  <  uuid_C
+  ↑ 1st user ticket                          ↑ 2nd user ticket
+```
+
+`GET /tickets/{ticket_uuid}` looks up any ticket by UUID without checking `user_id`, so any authenticated user can read any ticket — including the hidden one.
+
+**Exploitation:**
+1. `POST /tickets` → record `uuid_A`
+2. `POST /tickets` → record `uuid_C`
+3. Extract `node`, `clock_seq`, and timestamp from each UUID (they share the same `node` + `clock_seq`).
+4. Enumerate every 100-nanosecond timestamp between `uuid_A.time` and `uuid_C.time`; reconstruct the corresponding UUIDv1.
+5. `GET /tickets/{candidate}` for each candidate — the hidden ticket response contains `{"flag": "CTF{...}"}`.
+
+```sh
+python solutions/idor-uuid-sandwich/solve.py --email user@example.com --password pass
+```
+
+**Solution folder:** [solutions/idor-uuid-sandwich/](solutions/idor-uuid-sandwich/)
+
+---
+
 ## Adding a New CTF Solution
 
 Follow this convention exactly so agents and CI tooling can discover and run all solutions automatically.
@@ -652,6 +691,7 @@ python solutions/<slug>/solve.py --email admin@example.com --password secret
 | [solutions/llm-prompt-injection/](solutions/llm-prompt-injection/) | *(system prompt)* | Prompt injection payloads against Ollama chat endpoint |
 | [solutions/path-traversal-profile/](solutions/path-traversal-profile/) | `path_traversal` | `../` sequences in `filename` param → read `/tmp/path_traversal_flag.txt` |
 | [solutions/sqli-forgot-password/](solutions/sqli-forgot-password/) | `sqli_forgot` | Raw SQL f-string in email lookup → `' OR '1'='1' --` → flag in JSON response |
+| [solutions/idor-uuid-sandwich/](solutions/idor-uuid-sandwich/) | `idor_uuid_sandwich` | UUIDv1 timestamp enumeration between two bracket UUIDs → IDOR `GET /tickets/{uuid}` → flag in JSON |
 
 ---
 
@@ -772,6 +812,14 @@ python solutions/<slug>/solve.py --email admin@example.com --password secret
 | GET | `/wishlist/check/{product_id}` | 🔒 | List wishlist IDs that contain this product |
 | POST | `/wishlist/{wishlist_id}/share-preview` | 🔒 ⚠️ | **[SSTI]** Render `share_template` field via `jinja2.Template(input).render()` |
 
+### Tickets — `/tickets`
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | `/tickets` | 🔒 ⚠️ | **[IDOR UUID Sandwich]** Create support ticket; silently creates hidden internal ticket (with flag) sandwiched between consecutive user tickets |
+| GET | `/tickets/mine` | 🔒 | List current user's own tickets (ownership-scoped — safe reference) |
+| GET | `/tickets/{ticket_uuid}` | 🔒 ⚠️ | **[IDOR]** Fetch any ticket by UUID — **no ownership check**; UUID enumeration reveals the hidden flag ticket |
+
 ### Admin — `/admin`
 
 | Method | Path | Auth | Description |
@@ -842,6 +890,7 @@ Managed by Motor (`backend/app/db/mongo.py`). All use `_id` as ObjectId string.
 | `chat_history` | `user_id`, `message`, `response`, `is_user`, `created_at` | — |
 | `ratings` | `user_id`, `product_id`, `rating`, `review`, `created_at` | `(user_id, product_id)` |
 | `wishlists` | `user_id`, `name`, `items[]`, `created_at`, `updated_at` | — |
+| `support_tickets` | `ticket_uuid` (UUIDv1 str), `user_id`, `subject`, `message`, `is_internal`, `flag`, `created_at` | `ticket_uuid` |
 
 ---
 
