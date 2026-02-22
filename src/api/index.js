@@ -60,6 +60,12 @@ export const wishlist = {
     client.post(`/wishlist/${id}/share-preview`, { share_template: shareTemplate }),
 }
 
+export const tickets = {
+  create: (data) => client.post('/tickets', data),
+  mine: () => client.get('/tickets/mine'),
+  getByUuid: (uuid) => client.get(`/tickets/${uuid}`),
+}
+
 export const admin = {
   createCategory: (data) => client.post('/admin/categories', data),
   updateCategory: (id, data) => client.put(`/admin/categories/${id}`, data),

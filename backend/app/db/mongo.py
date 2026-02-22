@@ -108,3 +108,10 @@ async def init_mongo() -> None:
         IndexModel([("product_id", ASCENDING)]),
         IndexModel([("user_id", ASCENDING), ("product_id", ASCENDING)], unique=True),
     ])
+
+    # Support Tickets collection indexes (IDOR UUID Sandwich CTF challenge)
+    await db.support_tickets.create_indexes([
+        IndexModel([("ticket_uuid", ASCENDING)], unique=True),
+        IndexModel([("user_id", ASCENDING)]),
+        IndexModel([("created_at", DESCENDING)]),
+    ])

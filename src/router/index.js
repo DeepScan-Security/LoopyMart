@@ -13,6 +13,7 @@ const routes = [
   { path: '/forgot-password', name: 'ForgotPassword', component: () => import('@/views/ForgotPasswordView.vue'), meta: { title: 'Forgot Password', hideHeader: true, hideFooter: true } },
   { path: '/profile', name: 'Profile', component: () => import('@/views/ProfileView.vue'), meta: { title: 'Profile', auth: true, hideCategoryNav: true } },
   { path: '/support', name: 'Support', component: () => import('@/views/ChatView.vue'), meta: { title: 'Support Chat', auth: true, hideCategoryNav: true } },
+  { path: '/tickets', name: 'SupportTickets', component: () => import('@/views/SupportTicketsView.vue'), meta: { title: 'Support Tickets', auth: true, hideCategoryNav: true } },
   { path: '/spin', name: 'SpinWheel', component: () => import('@/views/SpinWheelView.vue'), meta: { title: 'Spin & Win', auth: true, hideCategoryNav: true } },
   { path: '/wallet', name: 'Wallet', component: () => import('@/views/WalletView.vue'), meta: { title: 'Wallet & Rewards', auth: true, hideCategoryNav: true } },
   { path: '/admin', name: 'Admin', component: () => import('@/views/AdminView.vue'), meta: { title: 'Admin', admin: true, hideHeader: true, hideFooter: true } },
