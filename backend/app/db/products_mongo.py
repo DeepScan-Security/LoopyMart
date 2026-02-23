@@ -29,6 +29,9 @@ def _doc_to_product(doc: dict) -> dict | None:
     if not doc:
         return None
     out = dict(doc)
+    # Normalize category_id: some legacy docs store it as an ObjectId
+    if isinstance(out.get("category_id"), ObjectId):
+        out["category_id"] = str(out["category_id"])
     out["id"] = str(out["_id"])
     del out["_id"]
     return out
@@ -62,7 +65,12 @@ async def product_list(
     db = get_mongo_db()
     filt = {}
     if category_id is not None:
-        filt["category_id"] = category_id
+        # Match both storage formats: plain string or actual ObjectId
+        try:
+            cat_oid = ObjectId(category_id)
+            filt["category_id"] = {"$in": [category_id, cat_oid]}
+        except InvalidId:
+            filt["category_id"] = category_id
     search_term = (search or "").strip()
     if search_term:
         # Search only by product name
