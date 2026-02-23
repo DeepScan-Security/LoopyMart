@@ -12,6 +12,7 @@ Chat messages are stored in MongoDB with the following schema:
 """
 
 import logging
+import re
 from datetime import datetime, timezone
 
 import httpx
@@ -22,6 +23,63 @@ from app.core.flags import get_chat_system_prompt
 from app.db.mongo import get_mongo_db
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Security filters (Hard difficulty)
+# ---------------------------------------------------------------------------
+
+# Input blocklist — common prompt injection phrases/keywords.
+# Any message containing one of these patterns is rejected before reaching Ollama.
+_BLOCKED_PATTERNS: list[str] = [
+    "ignore previous",
+    "ignore all",
+    "override",
+    "verbatim",
+    "base64",
+    "bypass",
+    "jailbreak",
+    "developer mode",
+    "debug mode",
+    "reveal your",
+    "your prompt",
+    "your full",
+    "your system",
+    "your instructions",
+    "internal security",
+    "security protocol",
+    "print your",
+    "repeat your",
+    "dump your",
+    "full configuration",
+    "context dump",
+    "context bleed",
+    "FLAG{",
+    "system override",
+    "end of user query",
+]
+
+# Output filter — regex matching plaintext flag format.
+_FLAG_PATTERN = re.compile(r"FLAG\{[^}]+\}", re.IGNORECASE)
+
+
+def _is_malicious_prompt(message: str) -> bool:
+    """Return True if the message contains any blocked injection keywords/phrases."""
+    lower = message.lower()
+    return any(pattern.lower() in lower for pattern in _BLOCKED_PATTERNS)
+
+
+def _redact_flag_from_response(response: str) -> str:
+    """Block responses that contain the flag in plaintext."""
+    if _FLAG_PATTERN.search(response):
+        logger.warning("Output filter triggered — plaintext flag detected in AI response.")
+        return (
+            "\u26a0\ufe0f SECURITY ALERT: The AI attempted to output restricted content. "
+            "This response has been blocked by the output safety filter. "
+            "If you are trying to access sensitive data, ensure you are following "
+            "the proper authorisation procedure."
+        )
+    return response
+
 
 _FALLBACK_SYSTEM_PROMPT = (
     'You are "EcoBot," a helpful support assistant for an eco-friendly e-commerce store. '
@@ -76,8 +134,20 @@ async def generate_ai_response(message: str, history: list[dict] | None = None) 
     Builds a multi-turn message list:
       [system prompt] + [past user/assistant turns] + [current user message]
 
+    Applies an input keyword blocklist before forwarding to Ollama and an
+    output filter that strips plaintext flag values from the response.
+
     Falls back to a polite error string if Ollama is unreachable.
     """
+    # ── Input filter ──────────────────────────────────────────────────────────
+    if _is_malicious_prompt(message):
+        logger.warning("Input filter blocked prompt: %s", message[:120])
+        return (
+            "I'm sorry, I cannot process that request. "
+            "Please ask me about our eco-friendly products, orders, or shipping "
+            "and I'll be happy to help!"
+        )
+
     system_prompt = get_chat_system_prompt() or _FALLBACK_SYSTEM_PROMPT
 
     messages: list[dict] = [{"role": "system", "content": system_prompt}]
@@ -104,7 +174,9 @@ async def generate_ai_response(message: str, history: list[dict] | None = None) 
             )
             resp.raise_for_status()
             data = resp.json()
-            return data["message"]["content"]
+            ai_text = data["message"]["content"]
+            # ── Output filter ─────────────────────────────────────────────────
+            return _redact_flag_from_response(ai_text)
     except httpx.ConnectError:
         logger.warning("Ollama is not reachable at %s", settings.ollama_url)
         return (

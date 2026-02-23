@@ -488,7 +488,7 @@ python solutions/path-traversal-profile/solve.py --email user@example.com --pass
 |---|---|
 | **Challenge ID** | *(no `flags.yml` key — flag is in `chat.system_prompt`)* |
 | **Category** | AI / LLM Security |
-| **Difficulty** | Variable (model-dependent) |
+| **Difficulty** | Hard |
 | **Flag** | `FLAG{PR0MPT_3XF1LTR4T10N_SUCC3SS}` *(set in `flags.yml` `chat.system_prompt`)* |
 | **Vulnerable File** | [backend/app/api/chat.py](backend/app/api/chat.py) |
 | **Vulnerable Sink** | Ollama chat API — system prompt contains the flag, sent to model unguarded |
