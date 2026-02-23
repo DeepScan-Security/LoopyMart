@@ -115,3 +115,10 @@ async def init_mongo() -> None:
         IndexModel([("user_id", ASCENDING)]),
         IndexModel([("created_at", DESCENDING)]),
     ])
+
+    # User Addresses collection indexes
+    await db.user_addresses.create_indexes([
+        IndexModel([("user_id", ASCENDING)]),
+        IndexModel([("user_id", ASCENDING), ("is_default", ASCENDING)]),
+        IndexModel([("user_id", ASCENDING), ("created_at", DESCENDING)]),
+    ])

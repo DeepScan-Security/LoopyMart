@@ -105,3 +105,11 @@ export const kyc = {
     })
   },
 }
+
+export const addresses = {
+  list: () => client.get('/addresses'),
+  create: (data) => client.post('/addresses', data),
+  update: (id, data) => client.patch(`/addresses/${id}`, data),
+  delete: (id) => client.delete(`/addresses/${id}`),
+  setDefault: (id) => client.post(`/addresses/${id}/default`),
+}
