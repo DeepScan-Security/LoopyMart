@@ -8,6 +8,7 @@ import secrets
 
 from app.api.deps import require_admin, get_current_user
 from app.db.kyc_mongo import kyc_create, kyc_get_by_user, kyc_list_all, kyc_update
+from app.db.seller_applications_mongo import seller_app_get_by_user
 from app.models.user import User
 from app.schemas.kyc import KYCCreate, KYCResponse, KYCStatusUpdate
 
@@ -19,7 +20,14 @@ async def create_kyc(
     data: KYCCreate,
     current_user: User = Depends(get_current_user),
 ) -> KYCResponse:
-    """Create KYC record for current user."""
+    """Create KYC record for current user (seller applicants only)."""
+    # Only users who have submitted a seller application can do KYC
+    seller_app = await seller_app_get_by_user(current_user.id)
+    if not seller_app:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="KYC is only available for seller applicants. Please apply as a seller first.",
+        )
     # Check if KYC already exists
     existing = await kyc_get_by_user(current_user.id)
     if existing:
@@ -58,7 +66,14 @@ async def upload_kyc_document(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
 ) -> KYCResponse:
-    """Upload KYC document image."""
+    """Upload KYC document image (seller applicants only)."""
+    # Only users who have submitted a seller application can do KYC
+    seller_app = await seller_app_get_by_user(current_user.id)
+    if not seller_app:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="KYC is only available for seller applicants. Please apply as a seller first.",
+        )
     # Get existing KYC
     kyc = await kyc_get_by_user(current_user.id)
     if not kyc:
@@ -126,7 +141,10 @@ async def upload_kyc_document(
 async def get_my_kyc(
     current_user: User = Depends(get_current_user),
 ) -> KYCResponse | None:
-    """Get KYC record for current user."""
+    """Get KYC record for current user (seller applicants only)."""
+    seller_app = await seller_app_get_by_user(current_user.id)
+    if not seller_app:
+        return None
     kyc = await kyc_get_by_user(current_user.id)
     
     if not kyc:

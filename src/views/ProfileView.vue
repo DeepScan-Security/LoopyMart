@@ -21,30 +21,18 @@ const profilePicturePreview = ref(null)
 // Blob URL created by fetching the protected endpoint via axios (carries the JWT)
 const profilePictureBlobUrl = ref(null)
 
-// KYC data
-const kyc = ref(null)
-const kycForm = ref({
-  document_type: 'AADHAR',
-  document_number: '',
-})
-const kycDocument = ref(null)
-
 // Active tab
 const activeTab = ref('profile')
 
 onMounted(async () => {
   try {
-    const [userRes, kycRes] = await Promise.all([
-      client.get('/auth/me'),
-      client.get('/kyc/me').catch(() => ({ data: null })),
-    ])
+    const userRes = await client.get('/auth/me')
     user.value = userRes.data
     profile.value = {
       full_name: user.value.full_name || '',
       phone: user.value.phone || '',
       address: user.value.address || '',
     }
-    kyc.value = kycRes.data
     // Fetch profile picture through the authenticated endpoint so the JWT is
     // included in the request (plain <img src> would fail with 401).
     if (user.value.profile_picture_url) {
@@ -127,45 +115,6 @@ async function uploadProfilePicture() {
   }
 }
 
-async function createKYC() {
-  error.value = ''
-  success.value = ''
-  try {
-    const res = await client.post('/kyc', kycForm.value)
-    kyc.value = res.data
-    success.value = 'KYC record created! Now upload your document.'
-  } catch (e) {
-    error.value = e.response?.data?.detail || 'Failed to create KYC'
-  }
-}
-
-function handleKYCDocumentChange(e) {
-  kycDocument.value = e.target.files[0]
-}
-
-async function uploadKYCDocument() {
-  if (!kycDocument.value) {
-    error.value = 'Please select a document'
-    return
-  }
-  
-  error.value = ''
-  success.value = ''
-  const formData = new FormData()
-  formData.append('file', kycDocument.value)
-  
-  try {
-    const res = await client.post('/kyc/upload-document', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
-    kyc.value = res.data
-    success.value = 'KYC document uploaded successfully!'
-    kycDocument.value = null
-  } catch (e) {
-    error.value = e.response?.data?.detail || 'Failed to upload document'
-  }
-}
-
 async function upgradeToBlack() {
   error.value = ''
   success.value = ''
@@ -182,7 +131,6 @@ const tabs = [
   { id: 'profile', label: 'My Profile', icon: 'user' },
   { id: 'picture', label: 'Profile Picture', icon: 'camera' },
   { id: 'orders', label: 'My Orders', icon: 'package' },
-  { id: 'kyc', label: 'KYC Verification', icon: 'shield' },
   { id: 'membership', label: 'LoopyMart Plus', icon: 'crown' },
 ]
 </script>
@@ -247,8 +195,6 @@ const tabs = [
                       d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
                 <path v-if="tab.icon === 'package'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                       d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                <path v-if="tab.icon === 'shield'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
                 <path v-if="tab.icon === 'crown'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                       d="M5 3l3.5 5.5L12 5l3.5 3.5L19 3v13a2 2 0 01-2 2H7a2 2 0 01-2-2V3z"/>
               </svg>
@@ -357,79 +303,6 @@ const tabs = [
               <RouterLink to="/orders" class="btn btn-primary">
                 Go to Order History
               </RouterLink>
-            </div>
-          </div>
-
-          <!-- KYC Tab -->
-          <div v-if="activeTab === 'kyc'" class="bg-white shadow-card rounded-sm">
-            <div class="p-4 border-b border-loopymart-gray-dark">
-              <h2 class="font-medium text-text-primary">KYC Verification</h2>
-            </div>
-            <div class="p-6">
-              <div v-if="!kyc">
-                <form @submit.prevent="createKYC" class="space-y-4 max-w-md">
-                  <div>
-                    <label class="form-label">Document Type</label>
-                    <select v-model="kycForm.document_type" class="form-input">
-                      <option value="AADHAR">Aadhar Card</option>
-                      <option value="PAN">PAN Card</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label class="form-label">Document Number</label>
-                    <input v-model="kycForm.document_number" type="text" required class="form-input"
-                           placeholder="Enter document number" />
-                  </div>
-                  <button type="submit" class="btn btn-primary">Submit KYC</button>
-                </form>
-              </div>
-
-              <div v-else class="space-y-6">
-                <div class="flex items-center gap-4 p-4 bg-loopymart-gray rounded-sm">
-                  <div class="flex-1">
-                    <p class="text-sm text-text-secondary">Document Type</p>
-                    <p class="font-medium">{{ kyc.document_type }}</p>
-                  </div>
-                  <div class="flex-1">
-                    <p class="text-sm text-text-secondary">Document Number</p>
-                    <p class="font-medium">{{ kyc.document_number }}</p>
-                  </div>
-                  <div>
-                    <span :class="[
-                      'px-3 py-1 rounded-full text-sm font-medium',
-                      kyc.status === 'VERIFIED' ? 'bg-loopymart-green text-white' :
-                      kyc.status === 'PENDING' ? 'bg-loopymart-orange text-white' :
-                      'bg-red-500 text-white'
-                    ]">
-                      {{ kyc.status }}
-                    </span>
-                  </div>
-                </div>
-
-                <div v-if="!kyc.document_image_url">
-                  <h3 class="font-medium text-text-primary mb-3">Upload Document</h3>
-                  <input type="file" accept="image/*,application/pdf" @change="handleKYCDocumentChange"
-                         id="kyc-upload" class="hidden" />
-                  <label for="kyc-upload" class="btn cursor-pointer inline-flex items-center gap-2">
-                    <svg width="20" height="20" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                    </svg>
-                    Choose Document
-                  </label>
-                  <button v-if="kycDocument" @click="uploadKYCDocument" class="btn btn-primary ml-3">
-                    Upload
-                  </button>
-                </div>
-                <div v-else class="p-4 bg-green-50 border border-loopymart-green rounded-sm">
-                  <p class="text-loopymart-green font-medium flex items-center gap-2">
-                    <svg width="20" height="20" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
-                    </svg>
-                    Document uploaded and under review
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
 
