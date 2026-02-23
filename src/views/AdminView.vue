@@ -16,6 +16,16 @@ const editingProduct = ref(null)
 const showCategoryForm = ref(false)
 const editingCategory = ref(null)
 
+// Seller Applications state
+const sellerAppsList = ref([])
+const sellerAppsError = ref('')
+const sellerActionLoading = ref({})
+
+// KYC state
+const kycList = ref([])
+const kycError = ref('')
+const kycActionLoading = ref({})
+
 const productForm = ref({
   name: '',
   description: '',
@@ -35,11 +45,17 @@ async function load() {
   productsList.value = []
   ordersList.value = []
   ordersError.value = ''
+  sellerAppsList.value = []
+  sellerAppsError.value = ''
+  kycList.value = []
+  kycError.value = ''
   try {
-    const [catRes, prodRes, ordRes] = await Promise.allSettled([
+    const [catRes, prodRes, ordRes, sellerRes, kycRes] = await Promise.allSettled([
       categories.list(),
       products.list({ limit: 100 }),
       admin.listOrders(),
+      admin.listSellerApplications(),
+      admin.listKYC(),
     ])
     if (catRes.status === 'fulfilled' && catRes.value?.data != null) {
       categoriesList.value = catRes.value.data
@@ -58,6 +74,16 @@ async function load() {
       } else {
         ordersError.value = ordRes.reason?.response?.data?.detail || 'Failed to load orders.'
       }
+    }
+    if (sellerRes.status === 'fulfilled' && sellerRes.value?.data != null) {
+      sellerAppsList.value = Array.isArray(sellerRes.value.data) ? sellerRes.value.data : []
+    } else if (sellerRes.status === 'rejected') {
+      sellerAppsError.value = sellerRes.reason?.response?.data?.detail || 'Failed to load seller applications.'
+    }
+    if (kycRes.status === 'fulfilled' && kycRes.value?.data != null) {
+      kycList.value = Array.isArray(kycRes.value.data) ? kycRes.value.data : []
+    } else if (kycRes.status === 'rejected') {
+      kycError.value = kycRes.reason?.response?.data?.detail || 'Failed to load KYC records.'
     }
   } catch (e) {
     // fallback
@@ -236,7 +262,33 @@ const tabs = [
   { id: 'products', label: 'Products', icon: 'box' },
   { id: 'categories', label: 'Categories', icon: 'folder' },
   { id: 'orders', label: 'Orders', icon: 'truck' },
+  { id: 'sellers', label: 'Seller Apps', icon: 'store' },
+  { id: 'kyc', label: 'KYC Verify', icon: 'shield' },
 ]
+
+async function updateSellerAppStatus(id, status, remarks = null) {
+  sellerActionLoading.value = { ...sellerActionLoading.value, [id]: true }
+  try {
+    await admin.updateSellerApplicationStatus(id, { status, remarks })
+    await load()
+  } catch (e) {
+    sellerAppsError.value = e.response?.data?.detail || 'Failed to update status.'
+  } finally {
+    sellerActionLoading.value = { ...sellerActionLoading.value, [id]: false }
+  }
+}
+
+async function updateKYCStatus(id, status, remarks = null) {
+  kycActionLoading.value = { ...kycActionLoading.value, [id]: true }
+  try {
+    await admin.updateKYCStatus(id, { status, remarks })
+    await load()
+  } catch (e) {
+    kycError.value = e.response?.data?.detail || 'Failed to update KYC status.'
+  } finally {
+    kycActionLoading.value = { ...kycActionLoading.value, [id]: false }
+  }
+}
 </script>
 
 <template>
@@ -270,6 +322,10 @@ const tabs = [
                     d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
               <path v-if="t.icon === 'truck'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                     d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+              <path v-if="t.icon === 'store'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+              <path v-if="t.icon === 'shield'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
             </svg>
             <span class="font-medium text-sm">{{ t.label }}</span>
           </button>
@@ -539,6 +595,154 @@ const tabs = [
                             +{{ order.items.length - 2 }} more
                           </li>
                         </ul>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <!-- Seller Applications Tab -->
+          <div v-if="tab === 'sellers'">
+            <h2 class="text-2xl font-bold text-text-primary mb-6">Seller Applications</h2>
+
+            <div v-if="sellerAppsError" class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-600 mb-4">
+              {{ sellerAppsError }}
+            </div>
+
+            <div v-if="sellerAppsList.length === 0 && !sellerAppsError"
+                 class="bg-white shadow-card rounded-lg p-12 text-center text-text-secondary">
+              No seller applications yet.
+            </div>
+
+            <div v-else class="space-y-4">
+              <div v-for="app in sellerAppsList" :key="app.id"
+                   class="bg-white shadow-card rounded-lg p-5">
+                <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
+                  <div>
+                    <h3 class="font-semibold text-text-primary">{{ app.store_name }}</h3>
+                    <p class="text-sm text-text-secondary">User ID: {{ app.user_id }} · {{ app.business_type }} · {{ app.email }}</p>
+                    <p class="text-xs text-text-hint mt-0.5">Applied: {{ new Date(app.created_at).toLocaleDateString('en-IN') }}</p>
+                  </div>
+                  <span :class="[
+                    'px-3 py-1 rounded-full text-xs font-semibold',
+                    app.status === 'APPROVED' ? 'bg-green-100 text-green-700' :
+                    app.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
+                    'bg-yellow-100 text-yellow-700'
+                  ]">
+                    {{ app.status }}
+                  </span>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mb-4">
+                  <div>
+                    <p class="text-xs text-text-secondary">Phone</p>
+                    <p>{{ app.phone }}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-text-secondary">PAN</p>
+                    <p>{{ app.pan_number }}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-text-secondary">GST</p>
+                    <p>{{ app.gst_number || '—' }}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-text-secondary">Bank (IFSC)</p>
+                    <p>{{ app.bank_ifsc }}</p>
+                  </div>
+                </div>
+
+                <div v-if="app.remarks" class="mb-3 text-sm text-text-secondary">
+                  <span class="font-medium">Remarks:</span> {{ app.remarks }}
+                </div>
+
+                <div v-if="app.status === 'PENDING'" class="flex gap-2 flex-wrap">
+                  <button
+                    @click="updateSellerAppStatus(app.id, 'APPROVED')"
+                    :disabled="sellerActionLoading[app.id]"
+                    class="btn btn-primary btn-sm disabled:opacity-60"
+                  >
+                    {{ sellerActionLoading[app.id] ? 'Processing…' : 'Approve' }}
+                  </button>
+                  <button
+                    @click="updateSellerAppStatus(app.id, 'REJECTED', 'Does not meet our seller criteria.')"
+                    :disabled="sellerActionLoading[app.id]"
+                    class="btn btn-sm btn-danger disabled:opacity-60"
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- KYC Verification Tab -->
+          <div v-if="tab === 'kyc'">
+            <h2 class="text-2xl font-bold text-text-primary mb-6">KYC Verification</h2>
+
+            <div v-if="kycError" class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-600 mb-4">
+              {{ kycError }}
+            </div>
+
+            <div v-if="kycList.length === 0 && !kycError"
+                 class="bg-white shadow-card rounded-lg p-12 text-center text-text-secondary">
+              No KYC records yet.
+            </div>
+
+            <div v-else class="bg-white shadow-card rounded-lg overflow-hidden">
+              <div class="overflow-x-auto">
+                <table class="w-full">
+                  <thead class="bg-loopymart-gray">
+                    <tr>
+                      <th class="px-5 py-3 text-left text-xs font-medium text-text-secondary uppercase">User ID</th>
+                      <th class="px-5 py-3 text-left text-xs font-medium text-text-secondary uppercase">Doc Type</th>
+                      <th class="px-5 py-3 text-left text-xs font-medium text-text-secondary uppercase">Doc Number</th>
+                      <th class="px-5 py-3 text-left text-xs font-medium text-text-secondary uppercase">Document</th>
+                      <th class="px-5 py-3 text-left text-xs font-medium text-text-secondary uppercase">Status</th>
+                      <th class="px-5 py-3 text-right text-xs font-medium text-text-secondary uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-loopymart-gray-dark">
+                    <tr v-for="k in kycList" :key="k.id" class="hover:bg-loopymart-gray/50">
+                      <td class="px-5 py-4 text-sm">{{ k.user_id }}</td>
+                      <td class="px-5 py-4 text-sm font-medium">{{ k.document_type }}</td>
+                      <td class="px-5 py-4 text-sm">{{ k.document_number }}</td>
+                      <td class="px-5 py-4">
+                        <a v-if="k.document_image_url"
+                           :href="imageUrl(k.document_image_url)"
+                           target="_blank"
+                           class="text-loopymart-blue text-xs underline">View</a>
+                        <span v-else class="text-xs text-text-hint">Not uploaded</span>
+                      </td>
+                      <td class="px-5 py-4">
+                        <span :class="[
+                          'px-2.5 py-0.5 rounded-full text-xs font-semibold',
+                          k.status === 'VERIFIED' ? 'bg-green-100 text-green-700' :
+                          k.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
+                          'bg-yellow-100 text-yellow-700'
+                        ]">
+                          {{ k.status }}
+                        </span>
+                      </td>
+                      <td class="px-5 py-4 text-right">
+                        <div v-if="k.status === 'PENDING'" class="flex gap-2 justify-end">
+                          <button
+                            @click="updateKYCStatus(k.id, 'VERIFIED')"
+                            :disabled="kycActionLoading[k.id]"
+                            class="btn btn-sm btn-primary disabled:opacity-60"
+                          >
+                            Verify
+                          </button>
+                          <button
+                            @click="updateKYCStatus(k.id, 'REJECTED', 'Document not clear or invalid.')"
+                            :disabled="kycActionLoading[k.id]"
+                            class="btn btn-sm btn-danger disabled:opacity-60"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                        <span v-else class="text-xs text-text-hint">—</span>
                       </td>
                     </tr>
                   </tbody>

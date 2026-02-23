@@ -81,4 +81,27 @@ export const admin = {
     })
   },
   listOrders: () => client.get('/admin/orders'),
+  // Seller applications
+  listSellerApplications: () => client.get('/admin/seller-applications'),
+  updateSellerApplicationStatus: (id, data) => client.put(`/admin/seller-applications/${id}/status`, data),
+  // KYC
+  listKYC: () => client.get('/admin/kyc'),
+  updateKYCStatus: (id, data) => client.put(`/admin/kyc/${id}/status`, data),
+}
+
+export const seller = {
+  apply: (data) => client.post('/seller/apply', data),
+  getMyApplication: () => client.get('/seller/me'),
+}
+
+export const kyc = {
+  getMe: () => client.get('/kyc/me'),
+  create: (data) => client.post('/kyc', data),
+  uploadDocument: (file) => {
+    const form = new FormData()
+    form.append('file', file)
+    return client.post('/kyc/upload-document', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
 }
