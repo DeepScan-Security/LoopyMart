@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import client from '@/api/client'
+import { addresses as addressesApi } from '@/api'
 
 const user = ref(null)
 const loading = ref(true)
@@ -26,7 +27,10 @@ const activeTab = ref('profile')
 
 onMounted(async () => {
   try {
-    const userRes = await client.get('/auth/me')
+    const [userRes] = await Promise.all([
+      client.get('/auth/me'),
+      loadAddresses(),
+    ])
     user.value = userRes.data
     profile.value = {
       full_name: user.value.full_name || '',
@@ -127,9 +131,142 @@ async function upgradeToBlack() {
   }
 }
 
+// ── Saved Addresses ──────────────────────────────────────────────────────────
+const INDIA_STATES = [
+  'Andaman and Nicobar Islands', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar',
+  'Chandigarh', 'Chhattisgarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Delhi',
+  'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jammu and Kashmir', 'Jharkhand',
+  'Karnataka', 'Kerala', 'Ladakh', 'Lakshadweep', 'Madhya Pradesh', 'Maharashtra',
+  'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Puducherry', 'Punjab',
+  'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh',
+  'Uttarakhand', 'West Bengal',
+]
+
+const addressList = ref([])
+const showAddressForm = ref(false)
+const editingAddressId = ref(null)
+const addressForm = ref({
+  full_name: '', phone: '', pincode: '', address_line1: '', address_line2: '',
+  landmark: '', city: '', state: '', country: 'India', address_type: 'Home', is_default: false,
+})
+const addressFormErrors = ref({})
+const addressSubmitting = ref(false)
+const addressError = ref('')
+const addressSuccess = ref('')
+
+async function loadAddresses() {
+  try {
+    const res = await addressesApi.list()
+    addressList.value = res.data
+  } catch (_) {
+    addressList.value = []
+  }
+}
+
+function openAddressForm(addr = null) {
+  addressFormErrors.value = {}
+  addressError.value = ''
+  if (addr) {
+    editingAddressId.value = addr.id
+    addressForm.value = {
+      full_name: addr.full_name || '',
+      phone: addr.phone || '',
+      pincode: addr.pincode || '',
+      address_line1: addr.address_line1 || '',
+      address_line2: addr.address_line2 || '',
+      landmark: addr.landmark || '',
+      city: addr.city || '',
+      state: addr.state || '',
+      country: addr.country || 'India',
+      address_type: addr.address_type || 'Home',
+      is_default: addr.is_default || false,
+    }
+  } else {
+    editingAddressId.value = null
+    addressForm.value = {
+      full_name: '', phone: '', pincode: '', address_line1: '', address_line2: '',
+      landmark: '', city: '', state: '', country: 'India', address_type: 'Home', is_default: false,
+    }
+  }
+  showAddressForm.value = true
+}
+
+function closeAddressForm() {
+  showAddressForm.value = false
+  editingAddressId.value = null
+  addressFormErrors.value = {}
+}
+
+function validateAddressForm() {
+  const errs = {}
+  const f = addressForm.value
+  if (!f.full_name.trim()) errs.full_name = 'Full name is required'
+  if (!/^\d{10}$/.test(f.phone.trim())) errs.phone = 'Enter a valid 10-digit phone number'
+  if (!/^\d{6}$/.test(f.pincode.trim())) errs.pincode = 'Enter a valid 6-digit PIN code'
+  if (!f.address_line1.trim()) errs.address_line1 = 'Address line 1 is required'
+  if (!f.city.trim()) errs.city = 'City is required'
+  if (!f.state.trim()) errs.state = 'State is required'
+  addressFormErrors.value = errs
+  return Object.keys(errs).length === 0
+}
+
+async function submitAddressForm() {
+  if (!validateAddressForm()) return
+  addressSubmitting.value = true
+  addressError.value = ''
+  addressSuccess.value = ''
+  try {
+    if (editingAddressId.value) {
+      const res = await addressesApi.update(editingAddressId.value, addressForm.value)
+      const idx = addressList.value.findIndex(a => a.id === editingAddressId.value)
+      if (idx !== -1) addressList.value[idx] = res.data
+      // Refresh to get correct is_default propagation
+      await loadAddresses()
+      addressSuccess.value = 'Address updated successfully!'
+    } else {
+      await addressesApi.create(addressForm.value)
+      await loadAddresses()
+      addressSuccess.value = 'Address added successfully!'
+    }
+    closeAddressForm()
+  } catch (e) {
+    addressError.value = e.response?.data?.detail || 'Failed to save address'
+  } finally {
+    addressSubmitting.value = false
+  }
+}
+
+async function confirmDeleteAddress(id) {
+  if (!confirm('Delete this address?')) return
+  addressError.value = ''
+  addressSuccess.value = ''
+  try {
+    await addressesApi.delete(id)
+    addressList.value = addressList.value.filter(a => a.id !== id)
+    // Re-fetch so default flag is consistent if the deleted one was default
+    await loadAddresses()
+    addressSuccess.value = 'Address deleted.'
+  } catch (e) {
+    addressError.value = e.response?.data?.detail || 'Failed to delete address'
+  }
+}
+
+async function setAddressDefault(id) {
+  addressError.value = ''
+  addressSuccess.value = ''
+  try {
+    await addressesApi.setDefault(id)
+    await loadAddresses()
+    addressSuccess.value = 'Default address updated.'
+  } catch (e) {
+    addressError.value = e.response?.data?.detail || 'Failed to update default'
+  }
+}
+
 const tabs = [
   { id: 'profile', label: 'My Profile', icon: 'user' },
   { id: 'picture', label: 'Profile Picture', icon: 'camera' },
+  { id: 'addresses', label: 'My Addresses', icon: 'location' },
   { id: 'orders', label: 'My Orders', icon: 'package' },
   { id: 'membership', label: 'LoopyMart Plus', icon: 'crown' },
 ]
@@ -197,6 +334,10 @@ const tabs = [
                       d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
                 <path v-if="tab.icon === 'crown'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                       d="M5 3l3.5 5.5L12 5l3.5 3.5L19 3v13a2 2 0 01-2 2H7a2 2 0 01-2-2V3z"/>
+                <path v-if="tab.icon === 'location'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                <path v-if="tab.icon === 'location'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
               </svg>
               <span class="text-sm font-medium">{{ tab.label }}</span>
             </button>
@@ -287,6 +428,175 @@ const tabs = [
               </div>
               <button v-if="profilePicture" @click="uploadProfilePicture" class="btn btn-primary">
                 Upload Picture
+              </button>
+            </div>
+          </div>
+
+          <!-- Addresses Tab -->
+          <div v-if="activeTab === 'addresses'" class="space-y-4">
+            <!-- Address-level messages -->
+            <div v-if="addressError" class="p-3 bg-red-50 border border-red-200 rounded-sm text-red-600 text-sm">
+              {{ addressError }}
+            </div>
+            <div v-if="addressSuccess" class="p-3 bg-green-50 border border-loopymart-green rounded-sm text-loopymart-green text-sm">
+              {{ addressSuccess }}
+            </div>
+
+            <!-- Address cards -->
+            <div
+              v-for="addr in addressList"
+              :key="addr.id"
+              :class="[
+                'bg-white shadow-card rounded-sm p-4 border-l-4',
+                addr.is_default ? 'border-loopymart-blue' : 'border-transparent'
+              ]"
+            >
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="font-medium text-text-primary">{{ addr.full_name }}</span>
+                    <span class="text-xs px-2 py-0.5 bg-loopymart-gray rounded text-text-secondary">
+                      {{ addr.address_type }}
+                    </span>
+                    <span v-if="addr.is_default"
+                          class="text-xs px-2 py-0.5 bg-loopymart-blue text-white rounded">
+                      Default
+                    </span>
+                  </div>
+                  <p class="text-sm text-text-secondary">
+                    {{ addr.address_line1 }}<span v-if="addr.address_line2">, {{ addr.address_line2 }}</span>
+                  </p>
+                  <p v-if="addr.landmark" class="text-sm text-text-secondary">Near {{ addr.landmark }}</p>
+                  <p class="text-sm text-text-secondary">
+                    {{ addr.city }}, {{ addr.state }} &ndash; {{ addr.pincode }}
+                  </p>
+                  <p class="text-sm text-text-secondary mt-1">Phone: {{ addr.phone }}</p>
+                </div>
+                <div class="flex flex-col gap-2 flex-shrink-0">
+                  <button
+                    v-if="!addr.is_default"
+                    @click="setAddressDefault(addr.id)"
+                    class="text-xs text-loopymart-blue hover:underline text-right"
+                  >
+                    Set Default
+                  </button>
+                  <button
+                    @click="openAddressForm(addr)"
+                    class="text-xs text-loopymart-blue hover:underline text-right"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    @click="confirmDeleteAddress(addr.id)"
+                    class="text-xs text-red-500 hover:underline text-right"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Empty state -->
+            <div v-if="!addressList.length && !showAddressForm"
+                 class="bg-white shadow-card rounded-sm p-8 text-center">
+              <p class="text-text-secondary mb-4">No saved addresses yet.</p>
+            </div>
+
+            <!-- Add / Edit form -->
+            <div v-if="showAddressForm" class="bg-white shadow-card rounded-sm">
+              <div class="p-4 border-b border-loopymart-gray-dark flex items-center justify-between">
+                <h3 class="font-medium text-text-primary">
+                  {{ editingAddressId ? 'Edit Address' : 'Add New Address' }}
+                </h3>
+                <button @click="closeAddressForm"
+                        class="text-text-secondary hover:text-text-primary">&times;</button>
+              </div>
+              <div v-if="addressError" class="mx-4 mt-4 p-3 bg-red-50 border border-red-200 rounded-sm text-red-600 text-sm">
+                {{ addressError }}
+              </div>
+              <form @submit.prevent="submitAddressForm" class="p-4 space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="form-label">Full Name <span class="text-red-500">*</span></label>
+                    <input v-model="addressForm.full_name" type="text" placeholder="First and last name"
+                           :class="['form-input', addressFormErrors.full_name ? 'border-red-400' : '']" />
+                    <p v-if="addressFormErrors.full_name" class="mt-1 text-xs text-red-500">{{ addressFormErrors.full_name }}</p>
+                  </div>
+                  <div>
+                    <label class="form-label">Mobile Number <span class="text-red-500">*</span></label>
+                    <input v-model="addressForm.phone" type="tel" placeholder="10-digit number"
+                           :class="['form-input', addressFormErrors.phone ? 'border-red-400' : '']" />
+                    <p v-if="addressFormErrors.phone" class="mt-1 text-xs text-red-500">{{ addressFormErrors.phone }}</p>
+                  </div>
+                  <div>
+                    <label class="form-label">PIN Code <span class="text-red-500">*</span></label>
+                    <input v-model="addressForm.pincode" type="text" maxlength="6" placeholder="6-digit PIN code"
+                           :class="['form-input', addressFormErrors.pincode ? 'border-red-400' : '']" />
+                    <p v-if="addressFormErrors.pincode" class="mt-1 text-xs text-red-500">{{ addressFormErrors.pincode }}</p>
+                  </div>
+                  <div>
+                    <label class="form-label">Address Type</label>
+                    <select v-model="addressForm.address_type" class="form-input">
+                      <option>Home</option>
+                      <option>Work</option>
+                      <option>Other</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label class="form-label">Address Line 1 <span class="text-red-500">*</span></label>
+                  <input v-model="addressForm.address_line1" type="text" placeholder="House No., Building, Street"
+                         :class="['form-input', addressFormErrors.address_line1 ? 'border-red-400' : '']" />
+                  <p v-if="addressFormErrors.address_line1" class="mt-1 text-xs text-red-500">{{ addressFormErrors.address_line1 }}</p>
+                </div>
+                <div>
+                  <label class="form-label">Address Line 2</label>
+                  <input v-model="addressForm.address_line2" type="text" placeholder="Area, Colony (optional)" class="form-input" />
+                </div>
+                <div>
+                  <label class="form-label">Landmark</label>
+                  <input v-model="addressForm.landmark" type="text" placeholder="Nearby landmark (optional)" class="form-input" />
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="form-label">City / Town <span class="text-red-500">*</span></label>
+                    <input v-model="addressForm.city" type="text" placeholder="City"
+                           :class="['form-input', addressFormErrors.city ? 'border-red-400' : '']" />
+                    <p v-if="addressFormErrors.city" class="mt-1 text-xs text-red-500">{{ addressFormErrors.city }}</p>
+                  </div>
+                  <div>
+                    <label class="form-label">State <span class="text-red-500">*</span></label>
+                    <select v-model="addressForm.state"
+                            :class="['form-input', addressFormErrors.state ? 'border-red-400' : '']">
+                      <option value="">Select State</option>
+                      <option v-for="s in INDIA_STATES" :key="s" :value="s">{{ s }}</option>
+                    </select>
+                    <p v-if="addressFormErrors.state" class="mt-1 text-xs text-red-500">{{ addressFormErrors.state }}</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <input id="addr-default" type="checkbox" v-model="addressForm.is_default"
+                         class="w-4 h-4 text-loopymart-blue" />
+                  <label for="addr-default" class="text-sm text-text-primary cursor-pointer">
+                    Set as default address
+                  </label>
+                </div>
+                <div class="flex items-center gap-3">
+                  <button type="submit" :disabled="addressSubmitting"
+                          class="btn btn-primary">
+                    {{ addressSubmitting ? 'Saving...' : (editingAddressId ? 'Update Address' : 'Save Address') }}
+                  </button>
+                  <button type="button" @click="closeAddressForm" class="btn">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Add new button -->
+            <div v-if="!showAddressForm" class="flex justify-end">
+              <button @click="openAddressForm()" class="btn btn-primary">
+                + Add New Address
               </button>
             </div>
           </div>

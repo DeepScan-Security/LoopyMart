@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
-import { cart, orders } from '@/api'
+import { cart, orders, addresses as addressesApi } from '@/api'
 import client from '@/api/client'
 
 const router = useRouter()
@@ -36,6 +36,28 @@ const error = ref('')
 // Checkout steps
 const currentStep = ref(1) // 1: Address, 2: Payment, 3: Review
 
+// Saved addresses
+const savedAddresses = ref([])
+const selectedSavedAddressId = ref(null)
+const saveAddressForNextTime = ref(false)
+
+function selectSavedAddress(addr) {
+  selectedSavedAddressId.value = addr.id
+  shippingAddress.value = {
+    full_name: addr.full_name || '',
+    phone: addr.phone || '',
+    pincode: addr.pincode || '',
+    address_line1: addr.address_line1 || '',
+    address_line2: addr.address_line2 || '',
+    landmark: addr.landmark || '',
+    city: addr.city || '',
+    state: addr.state || '',
+    country: addr.country || 'India',
+    address_type: addr.address_type || 'Home',
+  }
+  addressErrors.value = {}
+}
+
 // Payment state
 const paymentMethod = ref('wallet')
 const walletBalance = ref(0)
@@ -46,14 +68,21 @@ const showCoupons = ref(false)
 
 onMounted(async () => {
   try {
-    const [cartRes, walletRes, couponsRes] = await Promise.all([
+    const [cartRes, walletRes, couponsRes, addrRes] = await Promise.all([
       cart.list(),
       client.get('/payments/wallet/balance'),
       client.get('/payments/coupons'),
+      addressesApi.list().catch(() => ({ data: [] })),
     ])
     items.value = cartRes.data
     walletBalance.value = walletRes.data.balance
     coupons.value = couponsRes.data
+    savedAddresses.value = addrRes.data
+    // Auto-fill the default address if present
+    const defaultAddr = addrRes.data.find(a => a.is_default)
+    if (defaultAddr) {
+      selectSavedAddress(defaultAddr)
+    }
   } catch (_) {
     items.value = []
   } finally {
@@ -156,6 +185,13 @@ async function placeOrder() {
   error.value = ''
   
   try {
+    // Optionally save address before placing
+    if (saveAddressForNextTime.value && !selectedSavedAddressId.value) {
+      try {
+        await addressesApi.create({ ...shippingAddress.value })
+      } catch (_) { /* non-fatal */ }
+    }
+
     const orderRes = await orders.create({ shipping_address: shippingAddress.value })
     const orderId = orderRes.data.id
     
@@ -238,6 +274,53 @@ async function placeOrder() {
               <!-- Field error banner -->
               <div v-if="error" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-sm text-red-600 text-sm">
                 {{ error }}
+              </div>
+
+              <!-- Saved addresses selector -->
+              <div v-if="savedAddresses.length" class="mb-5">
+                <p class="form-label mb-2">Saved Addresses</p>
+                <div class="space-y-2">
+                  <label
+                    v-for="addr in savedAddresses"
+                    :key="addr.id"
+                    :class="[
+                      'flex items-start gap-3 p-3 border rounded-sm cursor-pointer transition-colors',
+                      selectedSavedAddressId === addr.id
+                        ? 'border-loopymart-blue bg-blue-50'
+                        : 'border-loopymart-gray-dark hover:border-loopymart-blue'
+                    ]"
+                  >
+                    <input
+                      type="radio"
+                      :value="addr.id"
+                      v-model="selectedSavedAddressId"
+                      @change="selectSavedAddress(addr)"
+                      class="mt-0.5 text-loopymart-blue"
+                    />
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <span class="font-medium text-sm text-text-primary">{{ addr.full_name }}</span>
+                        <span class="text-xs px-1.5 py-0.5 bg-loopymart-gray rounded text-text-secondary">
+                          {{ addr.address_type }}
+                        </span>
+                        <span v-if="addr.is_default"
+                              class="text-xs px-1.5 py-0.5 bg-loopymart-blue text-white rounded">
+                          Default
+                        </span>
+                      </div>
+                      <p class="text-xs text-text-secondary mt-0.5">
+                        {{ addr.address_line1 }}<span v-if="addr.address_line2">, {{ addr.address_line2 }}</span>,
+                        {{ addr.city }}, {{ addr.state }} &ndash; {{ addr.pincode }}
+                      </p>
+                      <p class="text-xs text-text-secondary">{{ addr.phone }}</p>
+                    </div>
+                  </label>
+                </div>
+                <div class="my-3 flex items-center gap-2">
+                  <hr class="flex-1 border-loopymart-gray-dark" />
+                  <span class="text-xs text-text-secondary">or enter a new address</span>
+                  <hr class="flex-1 border-loopymart-gray-dark" />
+                </div>
               </div>
 
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -379,6 +462,19 @@ async function placeOrder() {
                     💼 Work
                   </button>
                 </div>
+              </div>
+
+              <!-- Save for next time -->
+              <div v-if="!selectedSavedAddressId" class="mt-4 flex items-center gap-2">
+                <input
+                  id="save-addr-checkout"
+                  type="checkbox"
+                  v-model="saveAddressForNextTime"
+                  class="w-4 h-4 text-loopymart-blue"
+                />
+                <label for="save-addr-checkout" class="text-sm text-text-primary cursor-pointer">
+                  Save this address for next time
+                </label>
               </div>
 
               <button

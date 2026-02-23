@@ -128,7 +128,7 @@ const activeCategory = computed(() => {
 })
 
 onMounted(loadProducts)
-watch(() => route.query.category, loadProducts)
+watch(() => route.query.category, () => loadProducts())
 watch(() => route.query.q, (newQ) => {
   if (newQ !== searchQuery.value) {
     searchQuery.value = newQ || ''
