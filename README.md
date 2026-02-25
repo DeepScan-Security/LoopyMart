@@ -287,10 +287,11 @@ get_chat_system_prompt()        # → full system prompt string with embedded fl
 | `wishlist_ssti` | `CTF{t3mpl4t3_1nj3ct10n_ftw}` | `api/wishlist.py` → injected as `flag` variable in Jinja2 render context |
 | `ssrf_invoice` | `CTF{55rf_f1l3_r34d_pwn3d}` | `api/ctf.py` (`/flag.txt`); `main.py` writes to `/tmp/ssrf_flag.txt` on startup |
 | `spin_wheel` | `CTF{w34k_prng_pr3d1ct4bl3_sp1n}` | `api/spin.py` → returned as mystery prize |
-| `wallet_race` | `CTF{r4c3_c0nd1t10n_d0ubl3_sp3nd}` | `api/wallet.py` → purchasable from flag store at ₹200 |
+| `wallet_race` | `CTF{r4c3_c0nd1t10n_d0ubl3_sp3nd}` | `api/wallet.py` → purchasable from flag store at ₹333 (normal max ₹250) |
 | `path_traversal` | `CTF{p4th_tr4v3rs4l_pr0f1l3_pwn3d}` | `api/auth.py` → `GET /auth/profile-picture?filename=…`; `main.py` writes to `/tmp/path_traversal_flag.txt` on startup |
 | `sqli_forgot` | `CTF{sql1_forg0t_p4ssw0rd_pwn3d}` | `api/auth.py` → `POST /auth/forgot-password`; raw SQL f-string sink in email lookup |
 | `idor_uuid_sandwich` | `CTF{1d0r_uu1d_s4ndw1ch_pwn3d}` | `api/tickets.py` → `GET /tickets/{uuid}`; no `user_id` ownership check; flag in hidden internal ticket |
+| `mass_assignment_plus` | `CTF{m4ss_4ss1gnm3nt_plus_pwn3d}` | `api/auth.py` → `POST /auth/upgrade-black` on successful mass-assignment bypass; also re-emitted by `GET /auth/me` for existing Plus members |
 | *(LLM)* | `FLAG{PR0MPT_3XF1LTR4T10N_SUCC3SS}` | `chat.system_prompt` in `flags.yml`; read by `api/chat.py` via `get_chat_system_prompt()` |
 
 > **Rule:** Always add the flag to `flags.yml` **first**, then wire the vulnerable endpoint to call `get_flag()`. Never hardcode flag strings in Python source files.
@@ -433,9 +434,9 @@ python solutions/spin-wheel-weak-prng/solve.py
 3. Writes `wallet_balance = old_balance + cashback` (overwrites, not increments)
 4. Clears `pending_cashback` in a separate query
 
-Sending many concurrent `POST /wallet/redeem` requests causes multiple writes before any clear, multiplying the credited amount. Each user starts with ₹100 balance + ₹50 pending cashback; the flag costs ₹200 from `POST /wallet/purchase-flag`.
+Sending many concurrent `POST /wallet/redeem` requests causes multiple writes before any clear, multiplying the credited amount. Each user starts with ₹100 balance and no pending cashback; completing a paid order grants a fixed ₹50 cashback (first 3 orders only, max ₹150). The flag costs ₹333 from `POST /wallet/purchase-flag` — the normal ceiling of ₹250 (₹100 + ₹50 × 3) is intentionally insufficient.
 
-**Solution folder:** *(no dedicated folder — exploit with `asyncio.gather` or `ab`/`wrk`)*
+**Solution folder:** [solutions/wallet-race-condition/](solutions/wallet-race-condition/)
 
 ---
 
@@ -574,6 +575,36 @@ python solutions/idor-uuid-sandwich/solve.py --email user@example.com --password
 
 ---
 
+### Challenge 10 — Mass Assignment via Plus Upgrade
+
+| | |
+|---|---|
+| **Challenge ID** | `mass_assignment_plus` |
+| **Category** | Web / Mass Assignment |
+| **Difficulty** | Easy–Medium |
+| **Flag** | `CTF{m4ss_4ss1gnm3nt_plus_pwn3d}` |
+| **Vulnerable File** | [backend/app/api/auth.py](backend/app/api/auth.py) |
+| **Vulnerable Function** | `upgrade_to_black()` |
+| **Vulnerable Sink** | `for k, v in data.items(): setattr(user, k, v)` — no allowlist on request body keys |
+| **CWE** | CWE-915 Improperly Controlled Modification of Dynamically-Determined Object Attributes |
+
+**How it works:** `POST /auth/upgrade-black` accepts an optional JSON body. Every key in the body is blindly written onto the SQLAlchemy `User` model via `setattr()` before an eligibility check is evaluated. A normal UI click sends no body and is always rejected with HTTP 403 ("You are not eligible for LoopyMart Plus membership."). By crafting a request with the right key in the JSON body, the eligibility gate can be bypassed, the upgrade proceeds, and the flag is returned as `plus_flag` in the JSON response. Once upgraded, the flag also appears in subsequent `GET /auth/me` calls so the UI continues to show it after a page refresh.
+
+**Observable behaviour (before exploit):**
+- Click "Upgrade Now" in the Membership tab → browser alert "You are not eligible for LoopyMart Plus membership."
+
+**Solution folder:** [solutions/mass-assignment-plus/](solutions/mass-assignment-plus/)
+
+```sh
+python solutions/mass-assignment-plus/solve.py --email user@example.com --password pass
+```
+
+**Mitigation:**
+- Validate and allowlist accepted body fields; never use `setattr()` with unchecked user input.
+- Use a strict Pydantic request schema instead of a bare `dict`.
+
+---
+
 ## Adding a New CTF Solution
 
 Follow this convention exactly so agents and CI tooling can discover and run all solutions automatically.
@@ -692,6 +723,8 @@ python solutions/<slug>/solve.py --email admin@example.com --password secret
 | [solutions/path-traversal-profile/](solutions/path-traversal-profile/) | `path_traversal` | `../` sequences in `filename` param → read `/tmp/path_traversal_flag.txt` |
 | [solutions/sqli-forgot-password/](solutions/sqli-forgot-password/) | `sqli_forgot` | Raw SQL f-string in email lookup → `' OR '1'='1' --` → flag in JSON response |
 | [solutions/idor-uuid-sandwich/](solutions/idor-uuid-sandwich/) | `idor_uuid_sandwich` | UUIDv1 timestamp enumeration between two bracket UUIDs → IDOR `GET /tickets/{uuid}` → flag in JSON |
+| [solutions/mass-assignment-plus/](solutions/mass-assignment-plus/) | `mass_assignment_plus` | Mass assignment via request body `setattr()` sink on `POST /auth/upgrade-black` → flag in JSON response |
+| [solutions/wallet-race-condition/](solutions/wallet-race-condition/) | `wallet_race` | Concurrent POST /wallet/redeem TOCTOU → multiply pending_cashback above ₹333 → purchase flag |
 
 ---
 
@@ -713,7 +746,7 @@ python solutions/<slug>/solve.py --email admin@example.com --password secret
 | GET | `/auth/profile-picture` | 🔒 ⚠️ | **[Path Traversal]** Download profile picture by `filename` — no boundary check, allows `../` escape |
 | POST | `/auth/forgot-password` | — ⚠️ | **[SQLi]** Email field interpolated into raw SQL f-string → `' OR '1'='1' --` returns flag |
 | POST | `/auth/reset-password` | — | Reset password with token |
-| POST | `/auth/upgrade-black` | 🔒 | Upgrade to LoopyMart Premium (dummy, free) |
+| POST | `/auth/upgrade-black` | 🔒 ⚠️ | **[Mass Assignment]** Request body keys blindly `setattr()`-ed onto User model before eligibility check — normal UI call always rejected as ineligible; flag returned on successful bypass |
 
 ### Categories — `/categories`
 
@@ -796,7 +829,7 @@ python solutions/<slug>/solve.py --email admin@example.com --password secret
 | GET | `/wallet` | 🔒 | Get balance + pending cashback |
 | POST | `/wallet/redeem` | 🔒 ⚠️ | **[Race Condition]** Redeem pending cashback — TOCTOU read-sleep-write |
 | GET | `/wallet/flag-store` | 🔒 | List purchasable flag store items |
-| POST | `/wallet/purchase-flag` | 🔒 | Purchase a CTF flag for ₹200 from wallet balance |
+| POST | `/wallet/purchase-flag` | 🔒 | Purchase a CTF flag for ₹333 from wallet balance |
 
 ### Wishlist — `/wishlist`
 
@@ -862,7 +895,7 @@ Managed by SQLAlchemy (`backend/app/models/user.py`). Only SQL table in the syst
 | `address` | varchar(500) | null | |
 | `profile_picture_url` | varchar(500) | null | |
 | `wallet_balance` | float | `100.0` | Starting ₹100 |
-| `pending_cashback` | float | `50.0` | Used for race-condition CTF |
+| `pending_cashback` | float | `0.0` | Race-condition CTF; ₹50 per paid order, first 3 only |
 | `last_cashback_redeem_date` | date | null | |
 | `is_black_member` | bool | `false` | LoopyMart Premium |
 | `black_member_since` | datetime TZ | null | |

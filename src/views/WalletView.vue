@@ -247,7 +247,7 @@ const sections = [
                 <ul class="text-sm text-text-secondary space-y-1">
                   <li class="flex items-start gap-2">
                     <span class="text-loopymart-green mt-0.5">✓</span>
-                    Place orders to earn 5% cashback (up to ₹50 per order)
+                    Earn fixed ₹50 cashback per successful paid order (first 3 orders only; max ₹150 total)
                   </li>
                   <li class="flex items-start gap-2">
                     <span class="text-loopymart-green mt-0.5">✓</span>
@@ -373,8 +373,8 @@ const sections = [
               <!-- Hint -->
               <div class="mt-6 p-4 bg-loopymart-gray rounded-sm">
                 <p class="text-xs text-text-hint">
-                  <strong>Hint:</strong> The exclusive reward costs ₹200, but you start with only ₹100 + ₹50 cashback. 
-                  Can you figure out how to get enough balance?
+                  <strong>Hint:</strong> The exclusive reward costs ₹333. Normal cashback tops out at ₹250 (₹100 + ₹50 × 3 purchases).
+                  Can you find another way to get more?
                 </p>
               </div>
             </div>

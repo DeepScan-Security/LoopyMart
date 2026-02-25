@@ -33,7 +33,7 @@ FLAG_STORE_ITEMS = [
     FlagStoreItem(
         id="ctf_flag",
         name="Flag",
-        price=200.0,
+        price=333.0,
         description="A mysterious flag that holds secrets. Can you afford it?",
     ),
 ]
@@ -152,8 +152,8 @@ async def purchase_flag(
 ) -> PurchaseResponse:
     """
     Purchase an item from the flag store.
-    The CTF flag costs 200, which is more than the initial balance (100) + cashback (50).
-    Players must exploit the race condition to accumulate enough balance.
+    The CTF flag costs ₹333. Normal path tops out at ₹250 (₹100 start + ₹50×3 orders).
+    Players must exploit the race condition in POST /wallet/redeem to push their balance above ₹333.
     """
     # Find the item
     item = next((i for i in FLAG_STORE_ITEMS if i.id == data.item_id), None)

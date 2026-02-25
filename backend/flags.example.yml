@@ -54,6 +54,14 @@ challenges:
   idor_uuid_sandwich:
     flag: "CTF{1d0r_uu1d_s4ndw1ch_pwn3d}"
 
+  # CTF Challenge: Mass Assignment via LoopyMart Plus Upgrade.
+  # POST /auth/upgrade-black accepts an optional JSON body whose keys are
+  # blindly set on the User model (setattr). Normal users are rejected as
+  # "not eligible".  Bypass by sending {"is_plus_eligible": true} in the
+  # request body — the flag is returned only on successful upgrade.
+  mass_assignment_plus:
+    flag: "CTF{m4ss_4ss1gnm3nt_plus_pwn3d}"
+
 # AI Chat bot configuration
 chat:
   system_prompt: |

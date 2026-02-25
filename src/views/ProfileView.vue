@@ -125,9 +125,13 @@ async function upgradeToBlack() {
   try {
     const res = await client.post('/auth/upgrade-black')
     user.value = res.data
-    success.value = 'Welcome to LoopyMart Black!'
+    success.value = 'Welcome to LoopyMart Plus!'
   } catch (e) {
-    error.value = e.response?.data?.detail || 'Failed to upgrade'
+    const detail = e.response?.data?.detail || 'Failed to upgrade'
+    if (e.response?.status === 403) {
+      alert(detail)
+    }
+    error.value = detail
   }
 }
 
@@ -375,11 +379,6 @@ const tabs = [
                   <input v-model="profile.phone" type="tel" class="form-input" 
                          placeholder="Enter mobile number" />
                 </div>
-              </div>
-              <div>
-                <label class="form-label">Address</label>
-                <textarea v-model="profile.address" rows="3" class="form-input resize-none"
-                          placeholder="Enter your address"></textarea>
               </div>
               <div class="flex items-center gap-4">
                 <button type="submit" class="btn btn-primary">Save Changes</button>
@@ -689,6 +688,10 @@ const tabs = [
                     year: 'numeric', month: 'long', day: 'numeric'
                   }) }}
                 </p>
+                <div v-if="user.plus_flag" class="mt-6 inline-block px-4 py-3 bg-amber-50 border border-amber-300 rounded">
+                  <p class="text-xs text-amber-600 mb-1 font-medium uppercase tracking-wide">CTF Flag</p>
+                  <p class="font-mono text-sm text-amber-800 select-all">{{ user.plus_flag }}</p>
+                </div>
               </div>
             </div>
           </div>
