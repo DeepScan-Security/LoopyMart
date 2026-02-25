@@ -25,6 +25,7 @@ class UserResponse(BaseModel):
     wallet_balance: float = 100.0
     is_black_member: bool = False
     black_member_since: datetime | None = None
+    plus_flag: str | None = None
     spin_count_today: int = 0
     last_spin_date: date | None = None
 

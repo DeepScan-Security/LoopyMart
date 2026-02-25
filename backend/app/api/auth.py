@@ -4,7 +4,7 @@ User profile and authentication API routes.
 
 import secrets
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -45,6 +45,7 @@ async def register(
         full_name=data.full_name,
         is_admin=False,
         wallet_balance=100.0,  # Default wallet balance
+        pending_cashback=0.0,  # New accounts start with no pending cashback
     )
     db.add(user)
     await db.flush()
@@ -83,7 +84,11 @@ async def login(
 
 @router.get("/me", response_model=UserResponse)
 async def me(current_user: User = Depends(get_current_user)) -> UserResponse:
-    return UserResponse.model_validate(current_user)
+    response = UserResponse.model_validate(current_user)
+    # Re-attach flag for Plus members so the UI can show it after a page refresh.
+    if current_user.is_black_member:
+        response.plus_flag = get_flag("mass_assignment_plus")
+    return response
 
 
 @router.put("/profile", response_model=UserResponse)
@@ -318,27 +323,60 @@ async def serve_profile_picture(
 
 @router.post("/upgrade-black", response_model=UserResponse)
 async def upgrade_to_black(
+    data: dict = Body(default={}),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> UserResponse:
-    """Upgrade to LoopyMart Premium membership (dummy payment)."""
+    """
+    Upgrade to LoopyMart Premium membership.
+
+    [INTENTIONALLY VULNERABLE – CTF challenge: Mass Assignment]
+    The optional JSON body is iterated and every key/value pair is blindly
+    written onto the User model via setattr() before the eligibility check
+    is evaluated.  A normal click sends no body and is rejected as
+    "not eligible".  Supplying {"is_plus_eligible": true} in the request
+    body sets that attribute on the in-memory user object, bypasses the
+    gate, and triggers the upgrade — returning the flag in the response.
+
+    Vulnerable sink:
+        for k, v in data.items():
+            setattr(user, k, v)        # ← mass-assignment, no allowlist
+
+    CWE-915  Improperly Controlled Modification of Dynamically-Determined
+             Object Attributes
+    """
     if current_user.is_black_member:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User is already a Black member.",
+            detail="User is already a Plus member.",
         )
-    
+
     # Get user with lock
     result = await db.execute(
         select(User).where(User.id == current_user.id).with_for_update()
     )
     user = result.scalar_one()
-    
-    # Upgrade to Black (no actual payment required, dummy implementation)
+
+    # ⚠️  VULNERABLE: every key from the request body is set on the model
+    # without any allowlist.  Attackers can set is_plus_eligible=true to
+    # bypass the eligibility gate below, or tamper with any other attribute.
+    for k, v in data.items():
+        setattr(user, k, v)
+
+    # Eligibility gate — blocked for normal users (no body sent from UI)
+    if not getattr(user, "is_plus_eligible", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not eligible for LoopyMart Plus membership.",
+        )
+
+    # Proceed with upgrade
     user.is_black_member = True
     user.black_member_since = datetime.now(timezone.utc)
-    
+
     await db.commit()
     await db.refresh(user)
-    
-    return UserResponse.model_validate(user)
+
+    response = UserResponse.model_validate(user)
+    response.plus_flag = get_flag("mass_assignment_plus")
+    return response
