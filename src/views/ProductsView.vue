@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
-import { categories, products } from '@/api'
+import { categories, products, ratings } from '@/api'
 import ProductCard from '@/components/ProductCard.vue'
 
 const route = useRoute()
@@ -17,6 +17,111 @@ const selectedCategory = ref('')
 const priceRange = ref({ min: 0, max: 100000 })
 const selectedRating = ref(0)
 const sortBy = ref('relevance')
+
+// ── Per-product review state ──
+// Map: product_id → { open, starHover, starSelected, comment, submitting, message, messageType }
+const reviewStates = ref({})
+
+const isLoggedIn = computed(() => !!localStorage.getItem('token'))
+
+function getReviewState(productId) {
+  return reviewStates.value[productId] || null
+}
+
+function openReview(productId) {
+  if (!isLoggedIn.value) {
+    router.push({ name: 'Login' })
+    return
+  }
+  reviewStates.value = {
+    ...reviewStates.value,
+    [productId]: {
+      open: true,
+      starHover: 0,
+      starSelected: 0,
+      comment: '',
+      submitting: false,
+      message: '',
+      messageType: 'success',
+    },
+  }
+}
+
+function closeReview(productId) {
+  const updated = { ...reviewStates.value }
+  delete updated[productId]
+  reviewStates.value = updated
+}
+
+function handleStar(productId, star, type) {
+  const state = reviewStates.value[productId]
+  if (!state) return
+  if (type === 'hover') {
+    reviewStates.value = { ...reviewStates.value, [productId]: { ...state, starHover: star } }
+  } else {
+    reviewStates.value = { ...reviewStates.value, [productId]: { ...state, starSelected: star, starHover: star } }
+  }
+}
+
+function handleComment(productId, value) {
+  const state = reviewStates.value[productId]
+  if (!state) return
+  reviewStates.value = { ...reviewStates.value, [productId]: { ...state, comment: value } }
+}
+
+async function submitReview(productId) {
+  const state = reviewStates.value[productId]
+  if (!state || !state.starSelected) return
+
+  reviewStates.value = {
+    ...reviewStates.value,
+    [productId]: { ...state, submitting: true, message: '', messageType: 'success' },
+  }
+
+  try {
+    await ratings.create({
+      product_id: productId,
+      rating: state.starSelected,
+      review: state.comment || null,
+    })
+
+    // Refresh rating stats for this product in the list
+    const statsRes = await ratings.getProductStats(productId)
+    const idx = list.value.findIndex(p => p.id === productId)
+    if (idx !== -1) {
+      list.value = list.value.map(p =>
+        p.id === productId
+          ? { ...p, average_rating: statsRes.data.average_rating, total_ratings: statsRes.data.total_ratings }
+          : p
+      )
+    }
+
+    reviewStates.value = {
+      ...reviewStates.value,
+      [productId]: {
+        ...reviewStates.value[productId],
+        submitting: false,
+        message: '✓ Review posted!',
+        messageType: 'success',
+      },
+    }
+
+    // Auto-close after 1.5 s
+    setTimeout(() => closeReview(productId), 1500)
+  } catch (e) {
+    const detail = e.response?.data?.detail || 'Failed to post review'
+    reviewStates.value = {
+      ...reviewStates.value,
+      [productId]: {
+        ...reviewStates.value[productId],
+        submitting: false,
+        message: detail,
+        messageType: 'error',
+      },
+    }
+  }
+}
+// ── /review state ──
 
 const sortOptions = [
   { value: 'relevance', label: 'Relevance' },
@@ -104,6 +209,14 @@ const filteredProducts = computed(() => {
   result = result.filter(p => 
     p.price >= priceRange.value.min && p.price <= priceRange.value.max
   )
+
+  // Apply rating filter (minimum average_rating)
+  if (selectedRating.value > 0) {
+    result = result.filter(p => {
+      const avg = p.average_rating != null ? p.average_rating : 0
+      return avg >= selectedRating.value
+    })
+  }
   
   // Apply sorting
   switch (sortBy.value) {
@@ -115,6 +228,9 @@ const filteredProducts = computed(() => {
       break
     case 'newest':
       result.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      break
+    case 'popular':
+      result.sort((a, b) => (b.total_ratings || 0) - (a.total_ratings || 0))
       break
     default:
       break
@@ -354,6 +470,12 @@ watch(() => route.query.q, (newQ) => {
               :key="product.id"
               :product="product"
               variant="grid"
+              :review-state="getReviewState(product.id)"
+              @review:open="openReview"
+              @review:close="closeReview"
+              @review:star="handleStar"
+              @review:comment="handleComment"
+              @review:submit="submitReview"
             />
           </div>
         </main>

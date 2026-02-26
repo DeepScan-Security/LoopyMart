@@ -62,6 +62,15 @@ challenges:
   mass_assignment_plus:
     flag: "CTF{m4ss_4ss1gnm3nt_plus_pwn3d}"
 
+  # CTF Challenge: Puppeteer Cookie Exfiltration.
+  # POST /ctf/mock-flag-cookie sets `mock_flag` cookie only for admin JWT callers.
+  # Non-admin callers receive HTTP 403.
+  # The cookie is NOT HttpOnly — Puppeteer (or any JS) can read it via document.cookie.
+  # Exploit: log in as admin via Puppeteer, call the endpoint with the bearer token,
+  # then read document.cookie to extract mock_flag=CTF{...}.
+  puppeteer_mock_cookie:
+    flag: "CTF{pUpp3t33r_c00k13_3xf1ltr4t10n}"
+
 # AI Chat bot configuration
 chat:
   system_prompt: |
