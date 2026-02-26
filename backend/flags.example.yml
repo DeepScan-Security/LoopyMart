@@ -71,6 +71,14 @@ challenges:
   puppeteer_mock_cookie:
     flag: "CTF{pUpp3t33r_c00k13_3xf1ltr4t10n}"
 
+  # CTF Challenge: Stored XSS via bleach mXSS (CVE-2021-23980).
+  # bleach==3.2.3 is pinned intentionally — vulnerable config:
+  #   svg/math + p/br + style/title/noscript + strip_comments=False
+  # Bypass: entity-encode event handler (on&#101;rror=) to defeat regex layer,
+  # then use SVG+comment+raw-text mXSS skeleton to survive bleach sanitisation.
+  stored_xss_bleach_mxss:
+    flag: "CTF{5t0r3d_xss_bl34ch_mxss_CVE_2021_23980}"
+
 # AI Chat bot configuration
 chat:
   system_prompt: |

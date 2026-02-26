@@ -151,9 +151,23 @@ async function submitRating() {
       review: userReview.value || null,
     })
     
-    ratingMessage.value = myRating.value ? 'Rating updated!' : 'Rating submitted!'
+    ratingMessage.value = 'Review posted!'
+    // Optimistically prepend so the comment appears instantly without page refresh
+    const optimisticReview = {
+      id: 'optimistic-' + Date.now(),
+      user_id: null,
+      product_id: route.params.id,
+      rating: userRating.value,
+      review: userReview.value || null,
+      created_at: new Date().toISOString(),
+    }
+    reviews.value = [optimisticReview, ...reviews.value]
     myRating.value = { rating: userRating.value, review: userReview.value }
-    
+    // Clear form immediately so the user can post another comment right away
+    userReview.value = ''
+    userRating.value = 0
+
+    // Re-fetch in background to replace optimistic entry with real server data
     const [statsRes, reviewsRes] = await Promise.all([
       client.get(`/ratings/product/${route.params.id}/stats`),
       client.get(`/ratings/product/${route.params.id}`),
@@ -533,7 +547,7 @@ function getRatingBarWidth(stars) {
               <!-- Rate This Product -->
               <div v-if="isLoggedIn" class="py-6 border-b border-loopymart-gray-dark">
                 <h3 class="font-medium text-text-primary mb-4">
-                  {{ myRating ? 'Update Your Rating' : 'Rate This Product' }}
+                  Rate &amp; Review This Product
                 </h3>
                 <div class="flex items-center gap-4 mb-4">
                   <div class="flex gap-1">
@@ -570,7 +584,7 @@ function getRatingBarWidth(stars) {
                   :disabled="submittingRating || !userRating"
                   class="btn btn-primary"
                 >
-                  {{ submittingRating ? 'Submitting...' : (myRating ? 'Update Rating' : 'Submit Rating') }}
+                  {{ submittingRating ? 'Submitting...' : 'Post Review' }}
                 </button>
                 <p 
                   v-if="ratingMessage" 

