@@ -18,3 +18,7 @@ httpx>=0.25.0
 pyyaml>=6.0.0
 jinja2>=3.1.0
 reportlab>=4.0.0
+# Pinned to vulnerable version — CTF: CVE-2021-23980 (Mutation XSS)
+# Do NOT upgrade to 3.3.0 — that release patches the mXSS bug
+bleach==3.2.3
+html5lib>=1.1

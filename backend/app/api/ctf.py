@@ -2,10 +2,12 @@
 CTF-related endpoints: robots.txt (flag for robots challenge) and optional /flags/{challenge_id}.
 """
 
-from fastapi import APIRouter, HTTPException, Request, status
-from fastapi.responses import PlainTextResponse
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import JSONResponse, PlainTextResponse
 
+from app.api.deps import get_current_user, require_admin
 from app.core.flags import get_flag
+from app.models.user import User
 
 router = APIRouter(tags=["ctf"])
 
@@ -58,3 +60,48 @@ def get_challenge_flag(challenge_id: str) -> str:
             detail="Challenge not found or flag not configured",
         )
     return flag
+
+
+@router.post("/ctf/mock-flag-cookie")
+async def mock_flag_cookie(
+    current_user: User = Depends(require_admin),
+) -> JSONResponse:
+    """
+    [CTF Challenge: Puppeteer Cookie Exfiltration]
+
+    Admin-only endpoint that sets a `mock_flag` cookie in the HTTP response.
+
+    The cookie is JS-readable (no HttpOnly) so Puppeteer can extract it via
+    `document.cookie` after the browser navigates to any same-origin page.
+
+    Intended exploitation flow (see solutions/puppeteer-mock-cookie/):
+      1. Obtain admin credentials or admin JWT via prior recon.
+      2. Use Puppeteer to log in and call this endpoint with the bearer token.
+      3. Read `document.cookie` — the flag value is the `mock_flag` cookie.
+
+    This endpoint returns 403 for non-admin callers.
+
+    CWE-315  Cleartext Storage of Sensitive Information in a Cookie
+    CWE-614  Sensitive Cookie in HTTPS Session Without 'Secure' Attribute
+    """
+    flag = get_flag("puppeteer_mock_cookie")
+    if not flag:
+        flag = "CTF{flag_not_configured}"
+
+    response = JSONResponse(
+        content={
+            "message": "Admin access confirmed. Flag set as a browser cookie.",
+            "hint": "Check your cookies for `mock_flag`.",
+            "flag": flag,           # Also returned in JSON for the Python solve path
+        }
+    )
+    response.set_cookie(
+        key="mock_flag",
+        value=flag,
+        max_age=3600,
+        path="/",
+        samesite="lax",
+        secure=False,   # deliberately insecure — CTF vulnerability demo
+        httponly=False, # deliberately JS-readable — Puppeteer can read via document.cookie
+    )
+    return response

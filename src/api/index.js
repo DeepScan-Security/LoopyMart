@@ -106,6 +106,14 @@ export const kyc = {
   },
 }
 
+export const ratings = {
+  create: (data) => client.post('/ratings', data),
+  getMyRating: (productId) => client.get(`/ratings/my-rating/${productId}`),
+  getProductStats: (productId) => client.get(`/ratings/product/${productId}/stats`),
+  listProductRatings: (productId, skip = 0, limit = 50) =>
+    client.get(`/ratings/product/${productId}`, { params: { skip, limit } }),
+}
+
 export const addresses = {
   list: () => client.get('/addresses'),
   create: (data) => client.post('/addresses', data),

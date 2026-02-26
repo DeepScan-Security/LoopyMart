@@ -62,6 +62,23 @@ challenges:
   mass_assignment_plus:
     flag: "CTF{m4ss_4ss1gnm3nt_plus_pwn3d}"
 
+  # CTF Challenge: Puppeteer Cookie Exfiltration.
+  # POST /ctf/mock-flag-cookie sets `mock_flag` cookie only for admin JWT callers.
+  # Non-admin callers receive HTTP 403.
+  # The cookie is NOT HttpOnly — Puppeteer (or any JS) can read it via document.cookie.
+  # Exploit: log in as admin via Puppeteer, call the endpoint with the bearer token,
+  # then read document.cookie to extract mock_flag=CTF{...}.
+  puppeteer_mock_cookie:
+    flag: "CTF{pUpp3t33r_c00k13_3xf1ltr4t10n}"
+
+  # CTF Challenge: Stored XSS via bleach mXSS (CVE-2021-23980).
+  # bleach==3.2.3 is pinned intentionally — vulnerable config:
+  #   svg/math + p/br + style/title/noscript + strip_comments=False
+  # Bypass: entity-encode event handler (on&#101;rror=) to defeat regex layer,
+  # then use SVG+comment+raw-text mXSS skeleton to survive bleach sanitisation.
+  stored_xss_bleach_mxss:
+    flag: "CTF{5t0r3d_xss_bl34ch_mxss_CVE_2021_23980}"
+
 # AI Chat bot configuration
 chat:
   system_prompt: |

