@@ -725,6 +725,7 @@ python solutions/<slug>/solve.py --email admin@example.com --password secret
 | [solutions/idor-uuid-sandwich/](solutions/idor-uuid-sandwich/) | `idor_uuid_sandwich` | UUIDv1 timestamp enumeration between two bracket UUIDs → IDOR `GET /tickets/{uuid}` → flag in JSON |
 | [solutions/mass-assignment-plus/](solutions/mass-assignment-plus/) | `mass_assignment_plus` | Mass assignment via request body `setattr()` sink on `POST /auth/upgrade-black` → flag in JSON response |
 | [solutions/wallet-race-condition/](solutions/wallet-race-condition/) | `wallet_race` | Concurrent POST /wallet/redeem TOCTOU → multiply pending_cashback above ₹333 → purchase flag |
+| [solutions/sensitive-files-enum/](solutions/sensitive-files-enum/) | *(recon utility)* | Unauthenticated async probe of 175+ paths: `.git`, `.env`, cloud IMDS, backups, admin panels, API docs |
 
 ---
 
