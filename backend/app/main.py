@@ -15,7 +15,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api import addresses, admin, auth, cart, categories, chat, ctf, kyc, orders, payments, products, ratings, seller, spin, tickets, wallet, wishlist
+from app.api import addresses, admin, auth, cart, categories, chat, ctf, kyc, mock_sensitive, orders, payments, products, ratings, seller, spin, tickets, wallet, wishlist
 from app.core.config import settings
 from app.core.flags import get_flag
 from app.db.mongo import close_mongo, init_mongo
@@ -97,6 +97,8 @@ app.add_middleware(
 
 # CTF routes (before static mount so /robots.txt is handled by the app)
 app.include_router(ctf.router)
+# Mock sensitive files — honeypot routes for enumeration CTF challenge
+app.include_router(mock_sensitive.router)
 
 # Mount static files if directory exists
 static_dir = get_static_dir()
