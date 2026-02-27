@@ -1,0 +1,28 @@
+# ─── backend/.dockerignore ────────────────────────────────────────────────────
+# Applied when building backend/Dockerfile (context = ./backend).
+
+# Virtual environment
+.venv/
+venv/
+
+# Python bytecode
+__pycache__/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+
+# Development database
+app.db
+
+# Live secrets — bind-mounted at runtime, not baked into the image
+flags.yml
+config.local.yml
+.env
+
+# Uploaded files — stored in a named Docker volume, not in the image
+static/uploads/
+
+# Editor / OS artefacts
+.DS_Store
+*.swp
+*.swo
