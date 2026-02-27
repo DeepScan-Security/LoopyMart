@@ -33,6 +33,10 @@ export default defineConfig(({ mode }) => {
           target: apiTarget,
           changeOrigin: true,
         },
+        '/vendor': {
+          target: apiTarget,
+          changeOrigin: true,
+        },
       },
     },
     resolve: {

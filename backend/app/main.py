@@ -15,7 +15,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api import addresses, admin, auth, cart, categories, chat, ctf, kyc, mock_sensitive, orders, payments, products, ratings, seller, spin, tickets, wallet, wishlist
+from app.api import addresses, admin, auth, cart, categories, chat, ctf, kyc, mock_sensitive, orders, payments, products, ratings, seller, spin, tickets, vendor, wallet, wishlist
 from app.core.config import settings
 from app.core.flags import get_flag
 from app.db.mongo import close_mongo, init_mongo
@@ -72,6 +72,13 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass  # Non-fatal — don't crash startup if flags.yml is missing
 
+    # Initialise vendor directory-listing / path-traversal challenge data.
+    # Creates /tmp/vendor_data/{slug}.txt files and /tmp/vendor_traversal_flag.txt
+    try:
+        vendor.init_vendor_data()
+    except Exception:
+        pass  # Non-fatal
+
     yield
 
     # Cleanup on shutdown
@@ -99,6 +106,8 @@ app.add_middleware(
 app.include_router(ctf.router)
 # Mock sensitive files — honeypot routes for enumeration CTF challenge
 app.include_router(mock_sensitive.router)
+# Vendor directory-listing / path-traversal CTF challenge
+app.include_router(vendor.router)
 
 # Mount static files if directory exists
 static_dir = get_static_dir()

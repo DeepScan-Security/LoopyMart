@@ -28,6 +28,12 @@ const footerLinks = {
     { label: 'Twitter', to: '#' },
     { label: 'YouTube', to: '#' },
   ],
+  vendors: [
+    { label: 'Vendor Directory', href: '/vendor' },
+    { label: 'Become a Vendor', href: '#' },
+    { label: 'Vendor Policies', href: '#' },
+    { label: 'Partner Support', href: '#' },
+  ],
 }
 </script>
 
@@ -35,7 +41,7 @@ const footerLinks = {
   <footer class="bg-[#172337] text-white mt-auto">
     <!-- Main Footer -->
     <div class="max-w-container mx-auto px-4 py-10">
-      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8">
+      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-8">
         <!-- About Section -->
         <div>
           <h3 class="text-xs text-text-hint uppercase tracking-wider mb-4">About</h3>
@@ -78,6 +84,18 @@ const footerLinks = {
           <ul class="space-y-2">
             <li v-for="link in footerLinks.social" :key="link.label">
               <a :href="link.to" class="text-xs text-white/70 hover:text-white transition-colors">
+                {{ link.label }}
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Vendor Partners -->
+        <div>
+          <h3 class="text-xs text-text-hint uppercase tracking-wider mb-4">Vendor Partners</h3>
+          <ul class="space-y-2">
+            <li v-for="link in footerLinks.vendors" :key="link.label">
+              <a :href="link.href" class="text-xs text-white/70 hover:text-white transition-colors">
                 {{ link.label }}
               </a>
             </li>
