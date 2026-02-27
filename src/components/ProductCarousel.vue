@@ -46,13 +46,13 @@ function scrollRight() {
 <template>
   <section :class="['shadow-sm', bgColor]">
     <!-- Header -->
-    <div class="flex items-center justify-between p-4 border-b border-flipkart-gray-dark">
+    <div class="flex items-center justify-between p-4 border-b border-loopymart-gray-dark">
       <div class="flex items-center gap-4">
         <h2 class="text-xl font-semibold text-text-primary">{{ title }}</h2>
         <RouterLink 
           :to="viewAllLink"
-          class="px-4 py-1.5 bg-flipkart-blue text-white text-sm font-medium rounded-sm
-                 hover:bg-flipkart-blue-dark transition-colors"
+          class="px-4 py-1.5 bg-loopymart-blue text-white text-sm font-medium rounded-sm
+                 hover:bg-loopymart-blue-dark transition-colors"
         >
           View All
         </RouterLink>

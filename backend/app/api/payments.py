@@ -143,6 +143,23 @@ async def process_dummy_payment(
             status="paid",
             user_id=current_user.id,
         )
+        
+        # Award cashback: fixed ₹50 for first 3 successful paid orders only.
+        # Normal max = ₹100 start + ₹50×3 = ₹250, which is intentionally below the
+        # ₹333 flag price — players must exploit the race condition to go higher.
+        from app.db.orders_mongo import order_list_by_user
+        all_orders = await order_list_by_user(current_user.id)
+        paid_count = sum(
+            1 for o in all_orders
+            if o["status"] in ("paid", "shipped", "delivered")
+        )
+        if paid_count <= 3:
+            result = await db.execute(
+                select(User).where(User.id == current_user.id).with_for_update()
+            )
+            user = result.scalar_one()
+            user.pending_cashback += 50.0
+            await db.commit()
     
     return DummyPaymentResponse(
         payment_id=payment["payment_id"],

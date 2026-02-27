@@ -45,7 +45,7 @@ class Settings(BaseSettings):
 
     # Application settings
     app_name: str = Field(
-        default_factory=lambda: get_yaml_value(_yaml_config, "app", "name", default=os.getenv("APP_NAME", "Clipkart Clone API"))
+        default_factory=lambda: get_yaml_value(_yaml_config, "app", "name", default=os.getenv("APP_NAME", "LoopyMart"))
     )
     debug: bool = Field(
         default_factory=lambda: get_yaml_value(_yaml_config, "app", "debug", default=os.getenv("DEBUG", "false").lower() == "true")
@@ -71,7 +71,7 @@ class Settings(BaseSettings):
     mongodb_db_name: str = Field(
         default_factory=lambda: get_yaml_value(
             _yaml_config, "mongodb", "db_name",
-            default=os.getenv("MONGODB_DB_NAME", "flipkart_clone")
+            default=os.getenv("MONGODB_DB_NAME", "loopymart")
         )
     )
 
@@ -110,6 +110,20 @@ class Settings(BaseSettings):
         )
     )
 
+    # Ollama (local LLM inference)
+    ollama_url: str = Field(
+        default_factory=lambda: get_yaml_value(
+            _yaml_config, "ollama", "url",
+            default=os.getenv("OLLAMA_URL", "http://localhost:11434")
+        )
+    )
+    ollama_model: str = Field(
+        default_factory=lambda: get_yaml_value(
+            _yaml_config, "ollama", "model",
+            default=os.getenv("OLLAMA_MODEL", "mistral")
+        )
+    )
+
     # CORS settings
     cors_origins: str = Field(
         default_factory=lambda: os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
@@ -124,14 +138,25 @@ class Settings(BaseSettings):
     )
 
     # Admin seed credentials (for initial setup only)
+    # ADMIN_EMAIL can be overridden via the ADMIN_EMAIL env var / config.local.yml
+    # ADMIN_PASSWORD defaults to "admin123" — change it in production!
     admin_email: str = Field(
-        default_factory=lambda: os.getenv("ADMIN_EMAIL", "")
+        default_factory=lambda: get_yaml_value(
+            _yaml_config, "app", "admin_email",
+            default=os.getenv("ADMIN_EMAIL", "admin@something.com")
+        )
     )
     admin_password: str = Field(
-        default_factory=lambda: os.getenv("ADMIN_PASSWORD", "")
+        default_factory=lambda: get_yaml_value(
+            _yaml_config, "app", "admin_password",
+            default=os.getenv("ADMIN_PASSWORD", "admin123")
+        )
     )
     admin_name: str = Field(
-        default_factory=lambda: os.getenv("ADMIN_NAME", "Admin")
+        default_factory=lambda: get_yaml_value(
+            _yaml_config, "app", "admin_name",
+            default=os.getenv("ADMIN_NAME", "Admin")
+        )
     )
 
     # API settings

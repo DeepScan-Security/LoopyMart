@@ -1,0 +1,15 @@
+{
+  "name": "puppeteer-mock-cookie-solver",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LoopyMart CTF — Puppeteer Cookie Exfiltration solve script",
+  "scripts": {
+    "solve": "node solve.js"
+  },
+  "dependencies": {
+    "puppeteer": "^22.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

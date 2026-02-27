@@ -46,3 +46,4 @@ backend/config.local.yml
 backend/flags.yml
 **/__pycache__/
 *.pyc
+podman

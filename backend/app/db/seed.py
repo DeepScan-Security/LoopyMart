@@ -359,14 +359,17 @@ async def seed_products(category_map: dict[str, str]) -> None:
 async def seed_db(db: AsyncSession) -> None:
     """
     Seed the database with initial data.
-    
+
     - Creates admin user if ADMIN_EMAIL and ADMIN_PASSWORD are set in env vars
+    - Seeds demo users (user1–user5@loopymart.com / user123)
     - Creates categories in MongoDB
     - Creates dummy products if no products exist
     - Seeds default coupons
     """
-    # SQL: Create admin user if credentials are provided
-    if settings.admin_email and settings.admin_password:
+    # SQL: Ensure admin user exists on every startup (idempotent — skips if email already taken)
+    # Email is configurable via ADMIN_EMAIL env var (default: admin@something.com)
+    # Password is configurable via ADMIN_PASSWORD env var (default: admin123)
+    if settings.admin_email:
         result = await db.execute(select(User).where(User.email == settings.admin_email))
         existing_admin = result.scalar_one_or_none()
         if not existing_admin:
@@ -378,6 +381,28 @@ async def seed_db(db: AsyncSession) -> None:
             )
             db.add(admin_user)
             await db.flush()
+            print(f"[seed] Admin user created — email: {settings.admin_email}")
+
+    # SQL: Seed demo normal users on every startup (idempotent — skips if email already taken)
+    # These provide ready-to-use accounts without requiring manual registration.
+    _DEMO_USERS = [
+        {"email": "user1@loopymart.xyz", "full_name": "Alice Johnson",  "password": "user123"},
+        {"email": "user2@loopymart.xyz", "full_name": "Bob Smith",      "password": "user123"},
+        {"email": "user3@loopymart.xyz", "full_name": "Carol Williams", "password": "user123"},
+        {"email": "user4@loopymart.xyz", "full_name": "David Brown",    "password": "user123"},
+        {"email": "user5@loopymart.xyz", "full_name": "Eve Davis",      "password": "user123"},
+    ]
+    for _u in _DEMO_USERS:
+        _res = await db.execute(select(User).where(User.email == _u["email"]))
+        if _res.scalar_one_or_none() is None:
+            db.add(User(
+                email=_u["email"],
+                hashed_password=get_password_hash(_u["password"]),
+                full_name=_u["full_name"],
+                is_admin=False,
+            ))
+            print(f"[seed] Demo user created — email: {_u['email']}")
+    await db.flush()
 
     # MongoDB: Seed categories
     category_map = await seed_categories()

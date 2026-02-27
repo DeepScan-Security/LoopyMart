@@ -20,13 +20,20 @@ from app.db.categories_mongo import (
     category_get,
     category_update,
 )
+from app.db.kyc_mongo import kyc_list_all, kyc_update
 from app.db.orders_mongo import order_list_all
 from app.db.products_mongo import product_create, product_delete, product_update
+from app.db.seller_applications_mongo import (
+    seller_app_list_all,
+    seller_app_update_status,
+)
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.category import CategoryCreate, CategoryResponse, CategoryUpdate
+from app.schemas.kyc import KYCResponse, KYCStatusUpdate
 from app.schemas.order import AdminOrderResponse, OrderItemResponse
 from app.schemas.product import ProductCreate, ProductResponse, ProductUpdate
+from app.schemas.seller import SellerApplicationResponse, SellerApplicationStatusUpdate
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -191,7 +198,7 @@ async def admin_upload_image(
     # #region agent log
     import json as _json_debug
     _debug_upload_data = {"location": "admin.py:upload_image", "message": "File uploaded", "data": {"saved_path": str(path), "path_exists": path.exists(), "file_size": len(content), "returned_url": f"/static/uploads/{name}"}, "timestamp": __import__("time").time() * 1000, "sessionId": "debug-session", "hypothesisId": "H3"}
-    with open("/Users/shubham2201/Documents/Projects/Flipkart-clone/.cursor/debug.log", "a") as _f: _f.write(_json_debug.dumps(_debug_upload_data) + "\n")
+    with open("/Users/hitesh.kumar/Documents/Projects/LoopyMart/.cursor/debug.log", "a") as _f: _f.write(_json_debug.dumps(_debug_upload_data) + "\n")
     # #endregion
     return {"url": f"/static/uploads/{name}"}
 
@@ -216,6 +223,130 @@ def _order_to_admin_response(order: dict, user_email: str = "", user_name: str =
         status=order["status"],
         shipping_address=order["shipping_address"],
         items=items,
+    )
+
+
+@router.get("/seller-applications", response_model=list[SellerApplicationResponse])
+async def admin_list_seller_applications(
+    current_user: User = Depends(require_admin),
+) -> list[SellerApplicationResponse]:
+    """List all seller applications (admin only)."""
+    apps = await seller_app_list_all()
+    return [
+        SellerApplicationResponse(
+            id=a["id"],
+            user_id=a["user_id"],
+            store_name=a["store_name"],
+            store_description=a["store_description"],
+            phone=a["phone"],
+            email=a["email"],
+            address=a["address"],
+            business_type=a["business_type"],
+            gst_number=a.get("gst_number"),
+            pan_number=a["pan_number"],
+            bank_account_number=a["bank_account_number"],
+            bank_ifsc=a["bank_ifsc"],
+            bank_account_name=a["bank_account_name"],
+            status=a["status"],
+            remarks=a.get("remarks"),
+            created_at=a["created_at"].isoformat(),
+            updated_at=a["updated_at"].isoformat(),
+        )
+        for a in apps
+    ]
+
+
+@router.put("/seller-applications/{application_id}/status", response_model=SellerApplicationResponse)
+async def admin_update_seller_application_status(
+    application_id: str,
+    data: SellerApplicationStatusUpdate,
+    current_user: User = Depends(require_admin),
+) -> SellerApplicationResponse:
+    """Approve or reject a seller application (admin only)."""
+    if data.status not in ["APPROVED", "REJECTED"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Status must be APPROVED or REJECTED.",
+        )
+    updated = await seller_app_update_status(
+        application_id,
+        status=data.status,
+        remarks=data.remarks,
+    )
+    if not updated:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Seller application not found.",
+        )
+    return SellerApplicationResponse(
+        id=updated["id"],
+        user_id=updated["user_id"],
+        store_name=updated["store_name"],
+        store_description=updated["store_description"],
+        phone=updated["phone"],
+        email=updated["email"],
+        address=updated["address"],
+        business_type=updated["business_type"],
+        gst_number=updated.get("gst_number"),
+        pan_number=updated["pan_number"],
+        bank_account_number=updated["bank_account_number"],
+        bank_ifsc=updated["bank_ifsc"],
+        bank_account_name=updated["bank_account_name"],
+        status=updated["status"],
+        remarks=updated.get("remarks"),
+        created_at=updated["created_at"].isoformat(),
+        updated_at=updated["updated_at"].isoformat(),
+    )
+
+
+@router.get("/kyc", response_model=list[KYCResponse])
+async def admin_list_kyc(
+    current_user: User = Depends(require_admin),
+) -> list[KYCResponse]:
+    """List all KYC records (admin only)."""
+    records = await kyc_list_all()
+    return [
+        KYCResponse(
+            id=k["id"],
+            user_id=k["user_id"],
+            document_type=k["document_type"],
+            document_number=k["document_number"],
+            document_image_url=k.get("document_image_url"),
+            status=k["status"],
+            created_at=k["created_at"].isoformat(),
+            updated_at=k["updated_at"].isoformat(),
+        )
+        for k in records
+    ]
+
+
+@router.put("/kyc/{kyc_id}/status", response_model=KYCResponse)
+async def admin_update_kyc_status(
+    kyc_id: str,
+    data: KYCStatusUpdate,
+    current_user: User = Depends(require_admin),
+) -> KYCResponse:
+    """Update KYC status (admin only)."""
+    if data.status not in ["VERIFIED", "REJECTED"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Status must be VERIFIED or REJECTED.",
+        )
+    updated = await kyc_update(kyc_id, status=data.status, remarks=data.remarks)
+    if not updated:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="KYC record not found.",
+        )
+    return KYCResponse(
+        id=updated["id"],
+        user_id=updated["user_id"],
+        document_type=updated["document_type"],
+        document_number=updated["document_number"],
+        document_image_url=updated.get("document_image_url"),
+        status=updated["status"],
+        created_at=updated["created_at"].isoformat(),
+        updated_at=updated["updated_at"].isoformat(),
     )
 
 

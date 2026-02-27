@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
-import { categories, products } from '@/api'
+import { categories, products, ratings } from '@/api'
 import ProductCard from '@/components/ProductCard.vue'
 
 const route = useRoute()
@@ -17,6 +17,111 @@ const selectedCategory = ref('')
 const priceRange = ref({ min: 0, max: 100000 })
 const selectedRating = ref(0)
 const sortBy = ref('relevance')
+
+// ── Per-product review state ──
+// Map: product_id → { open, starHover, starSelected, comment, submitting, message, messageType }
+const reviewStates = ref({})
+
+const isLoggedIn = computed(() => !!localStorage.getItem('token'))
+
+function getReviewState(productId) {
+  return reviewStates.value[productId] || null
+}
+
+function openReview(productId) {
+  if (!isLoggedIn.value) {
+    router.push({ name: 'Login' })
+    return
+  }
+  reviewStates.value = {
+    ...reviewStates.value,
+    [productId]: {
+      open: true,
+      starHover: 0,
+      starSelected: 0,
+      comment: '',
+      submitting: false,
+      message: '',
+      messageType: 'success',
+    },
+  }
+}
+
+function closeReview(productId) {
+  const updated = { ...reviewStates.value }
+  delete updated[productId]
+  reviewStates.value = updated
+}
+
+function handleStar(productId, star, type) {
+  const state = reviewStates.value[productId]
+  if (!state) return
+  if (type === 'hover') {
+    reviewStates.value = { ...reviewStates.value, [productId]: { ...state, starHover: star } }
+  } else {
+    reviewStates.value = { ...reviewStates.value, [productId]: { ...state, starSelected: star, starHover: star } }
+  }
+}
+
+function handleComment(productId, value) {
+  const state = reviewStates.value[productId]
+  if (!state) return
+  reviewStates.value = { ...reviewStates.value, [productId]: { ...state, comment: value } }
+}
+
+async function submitReview(productId) {
+  const state = reviewStates.value[productId]
+  if (!state || !state.starSelected) return
+
+  reviewStates.value = {
+    ...reviewStates.value,
+    [productId]: { ...state, submitting: true, message: '', messageType: 'success' },
+  }
+
+  try {
+    await ratings.create({
+      product_id: productId,
+      rating: state.starSelected,
+      review: state.comment || null,
+    })
+
+    // Refresh rating stats for this product in the list
+    const statsRes = await ratings.getProductStats(productId)
+    const idx = list.value.findIndex(p => p.id === productId)
+    if (idx !== -1) {
+      list.value = list.value.map(p =>
+        p.id === productId
+          ? { ...p, average_rating: statsRes.data.average_rating, total_ratings: statsRes.data.total_ratings }
+          : p
+      )
+    }
+
+    reviewStates.value = {
+      ...reviewStates.value,
+      [productId]: {
+        ...reviewStates.value[productId],
+        submitting: false,
+        message: '✓ Review posted!',
+        messageType: 'success',
+      },
+    }
+
+    // Auto-close after 1.5 s
+    setTimeout(() => closeReview(productId), 1500)
+  } catch (e) {
+    const detail = e.response?.data?.detail || 'Failed to post review'
+    reviewStates.value = {
+      ...reviewStates.value,
+      [productId]: {
+        ...reviewStates.value[productId],
+        submitting: false,
+        message: detail,
+        messageType: 'error',
+      },
+    }
+  }
+}
+// ── /review state ──
 
 const sortOptions = [
   { value: 'relevance', label: 'Relevance' },
@@ -104,6 +209,14 @@ const filteredProducts = computed(() => {
   result = result.filter(p => 
     p.price >= priceRange.value.min && p.price <= priceRange.value.max
   )
+
+  // Apply rating filter (minimum average_rating)
+  if (selectedRating.value > 0) {
+    result = result.filter(p => {
+      const avg = p.average_rating != null ? p.average_rating : 0
+      return avg >= selectedRating.value
+    })
+  }
   
   // Apply sorting
   switch (sortBy.value) {
@@ -115,6 +228,9 @@ const filteredProducts = computed(() => {
       break
     case 'newest':
       result.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      break
+    case 'popular':
+      result.sort((a, b) => (b.total_ratings || 0) - (a.total_ratings || 0))
       break
     default:
       break
@@ -128,7 +244,7 @@ const activeCategory = computed(() => {
 })
 
 onMounted(loadProducts)
-watch(() => route.query.category, loadProducts)
+watch(() => route.query.category, () => loadProducts())
 watch(() => route.query.q, (newQ) => {
   if (newQ !== searchQuery.value) {
     searchQuery.value = newQ || ''
@@ -138,14 +254,14 @@ watch(() => route.query.q, (newQ) => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-flipkart-gray">
+  <div class="min-h-screen bg-loopymart-gray">
     <div class="max-w-container mx-auto px-4 py-4">
       <!-- Breadcrumb -->
       <nav class="text-sm text-text-secondary mb-4">
-        <RouterLink to="/" class="hover:text-flipkart-blue">Home</RouterLink>
+        <RouterLink to="/" class="hover:text-loopymart-blue">Home</RouterLink>
         <span class="mx-2">&gt;</span>
         <span v-if="activeCategory">
-          <RouterLink to="/products" class="hover:text-flipkart-blue">Products</RouterLink>
+          <RouterLink to="/products" class="hover:text-loopymart-blue">Products</RouterLink>
           <span class="mx-2">&gt;</span>
           <span class="text-text-primary">{{ activeCategory.name }}</span>
         </span>
@@ -157,18 +273,18 @@ watch(() => route.query.q, (newQ) => {
         <aside class="hidden md:block w-64 flex-shrink-0">
           <div class="bg-white shadow-card rounded-sm sticky top-32">
             <!-- Filters Header -->
-            <div class="flex items-center justify-between p-4 border-b border-flipkart-gray-dark">
+            <div class="flex items-center justify-between p-4 border-b border-loopymart-gray-dark">
               <h2 class="font-semibold text-text-primary">Filters</h2>
               <button 
                 @click="clearFilters"
-                class="text-sm text-flipkart-blue hover:underline"
+                class="text-sm text-loopymart-blue hover:underline"
               >
                 Clear All
               </button>
             </div>
 
             <!-- Categories -->
-            <div class="p-4 border-b border-flipkart-gray-dark">
+            <div class="p-4 border-b border-loopymart-gray-dark">
               <h3 class="font-medium text-text-primary text-sm mb-3 uppercase tracking-wide">
                 Categories
               </h3>
@@ -178,7 +294,7 @@ watch(() => route.query.q, (newQ) => {
                     @click="selectCategory('')"
                     :class="[
                       'text-sm w-full text-left py-1 transition-colors',
-                      !selectedCategory ? 'text-flipkart-blue font-medium' : 'text-text-primary hover:text-flipkart-blue'
+                      !selectedCategory ? 'text-loopymart-blue font-medium' : 'text-text-primary hover:text-loopymart-blue'
                     ]"
                   >
                     All Categories
@@ -189,7 +305,7 @@ watch(() => route.query.q, (newQ) => {
                     @click="selectCategory(cat.slug)"
                     :class="[
                       'text-sm w-full text-left py-1 transition-colors',
-                      selectedCategory === cat.slug ? 'text-flipkart-blue font-medium' : 'text-text-primary hover:text-flipkart-blue'
+                      selectedCategory === cat.slug ? 'text-loopymart-blue font-medium' : 'text-text-primary hover:text-loopymart-blue'
                     ]"
                   >
                     {{ cat.name }}
@@ -199,7 +315,7 @@ watch(() => route.query.q, (newQ) => {
             </div>
 
             <!-- Price Range -->
-            <div class="p-4 border-b border-flipkart-gray-dark">
+            <div class="p-4 border-b border-loopymart-gray-dark">
               <h3 class="font-medium text-text-primary text-sm mb-3 uppercase tracking-wide">
                 Price
               </h3>
@@ -211,7 +327,7 @@ watch(() => route.query.q, (newQ) => {
                       name="price"
                       :checked="priceRange.min === range.min && priceRange.max === range.max"
                       @change="priceRange = { min: range.min, max: range.max }"
-                      class="text-flipkart-blue focus:ring-flipkart-blue"
+                      class="text-loopymart-blue focus:ring-flipkart-blue"
                     />
                     <span class="text-sm text-text-primary">{{ range.label }}</span>
                   </label>
@@ -232,11 +348,11 @@ watch(() => route.query.q, (newQ) => {
                       name="rating"
                       :checked="selectedRating === rating"
                       @change="selectedRating = rating"
-                      class="text-flipkart-blue focus:ring-flipkart-blue"
+                      class="text-loopymart-blue focus:ring-flipkart-blue"
                     />
                     <span class="flex items-center gap-1 text-sm text-text-primary">
                       {{ rating }}
-                      <svg width="12" height="12" class="w-3 h-3 text-flipkart-orange" fill="currentColor" viewBox="0 0 20 20">
+                      <svg width="12" height="12" class="w-3 h-3 text-loopymart-orange" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                       </svg>
                       & above
@@ -325,7 +441,7 @@ watch(() => route.query.q, (newQ) => {
 
           <!-- Loading State -->
           <div v-if="loading" class="bg-white shadow-card rounded-sm p-12 text-center">
-            <div class="inline-block w-8 h-8 border-4 border-flipkart-blue border-t-transparent 
+            <div class="inline-block w-8 h-8 border-4 border-loopymart-blue border-t-transparent 
                         rounded-full animate-spin"></div>
             <p class="mt-4 text-text-secondary">Loading products...</p>
           </div>
@@ -354,6 +470,12 @@ watch(() => route.query.q, (newQ) => {
               :key="product.id"
               :product="product"
               variant="grid"
+              :review-state="getReviewState(product.id)"
+              @review:open="openReview"
+              @review:close="closeReview"
+              @review:star="handleStar"
+              @review:comment="handleComment"
+              @review:submit="submitReview"
             />
           </div>
         </main>
@@ -375,11 +497,11 @@ watch(() => route.query.q, (newQ) => {
         <!-- Drawer -->
         <div class="absolute inset-y-0 left-0 w-80 max-w-full bg-white shadow-xl animate-slideIn">
           <!-- Header -->
-          <div class="flex items-center justify-between p-4 border-b border-flipkart-gray-dark">
+          <div class="flex items-center justify-between p-4 border-b border-loopymart-gray-dark">
             <h2 class="font-semibold text-text-primary">Filters</h2>
             <button 
               @click="showMobileFilters = false"
-              class="p-1 hover:bg-flipkart-gray rounded-full"
+              class="p-1 hover:bg-loopymart-gray rounded-full"
             >
               <svg width="24" height="24" class="w-6 h-6 text-text-secondary" fill="none" stroke="currentColor" 
                    viewBox="0 0 24 24">
@@ -392,7 +514,7 @@ watch(() => route.query.q, (newQ) => {
           <!-- Filter Content -->
           <div class="overflow-y-auto h-[calc(100%-120px)]">
             <!-- Categories -->
-            <div class="p-4 border-b border-flipkart-gray-dark">
+            <div class="p-4 border-b border-loopymart-gray-dark">
               <h3 class="font-medium text-text-primary text-sm mb-3 uppercase">Categories</h3>
               <ul class="space-y-2">
                 <li>
@@ -400,7 +522,7 @@ watch(() => route.query.q, (newQ) => {
                     @click="selectCategory(''); showMobileFilters = false"
                     :class="[
                       'text-sm w-full text-left py-1',
-                      !selectedCategory ? 'text-flipkart-blue font-medium' : 'text-text-primary'
+                      !selectedCategory ? 'text-loopymart-blue font-medium' : 'text-text-primary'
                     ]"
                   >
                     All Categories
@@ -411,7 +533,7 @@ watch(() => route.query.q, (newQ) => {
                     @click="selectCategory(cat.slug); showMobileFilters = false"
                     :class="[
                       'text-sm w-full text-left py-1',
-                      selectedCategory === cat.slug ? 'text-flipkart-blue font-medium' : 'text-text-primary'
+                      selectedCategory === cat.slug ? 'text-loopymart-blue font-medium' : 'text-text-primary'
                     ]"
                   >
                     {{ cat.name }}
@@ -440,7 +562,7 @@ watch(() => route.query.q, (newQ) => {
           </div>
 
           <!-- Footer -->
-          <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-flipkart-gray-dark bg-white">
+          <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-loopymart-gray-dark bg-white">
             <div class="flex gap-3">
               <button 
                 @click="clearFilters(); showMobileFilters = false"

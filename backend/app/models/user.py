@@ -33,8 +33,10 @@ class User(Base):
     
     # Wallet
     wallet_balance: Mapped[float] = mapped_column(Float, default=100.0, nullable=False)
+    pending_cashback: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    last_cashback_redeem_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     
-    # Flipkart Black membership
+    # LoopyMart Premium membership
     is_black_member: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     black_member_since: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     

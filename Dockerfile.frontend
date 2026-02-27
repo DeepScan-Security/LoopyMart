@@ -1,0 +1,33 @@
+# ─── Stage 1: Build Vue 3 SPA ────────────────────────────────────────────────
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Install dependencies (uses package-lock.json for reproducibility)
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# Copy source and build
+COPY . .
+
+# VITE_API_BASE_URL must be /api so Axios routes requests through nginx
+# VITE_STATIC_URL is empty — nginx serves /static/ directly from upstream
+ARG VITE_API_BASE_URL=/api
+ARG VITE_STATIC_URL=
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_STATIC_URL=$VITE_STATIC_URL
+
+RUN npm run build
+
+# ─── Stage 2: Serve via nginx ─────────────────────────────────────────────────
+FROM nginx:alpine
+
+# Copy built SPA assets
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Use the Docker-specific nginx config (upstream points to 'backend' service)
+COPY deploy/nginx.docker.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

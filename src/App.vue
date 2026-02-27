@@ -12,7 +12,7 @@ const showFooter = computed(() => !route.meta.hideFooter)
 </script>
 
 <template>
-  <div class="app min-h-screen flex flex-col bg-flipkart-gray">
+  <div class="app min-h-screen flex flex-col bg-loopymart-gray">
     <AppHeader v-if="showHeader" />
     <CategoryNav v-if="showCategoryNav" />
     <main class="flex-1">

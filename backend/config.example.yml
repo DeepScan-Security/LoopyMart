@@ -2,21 +2,21 @@
 # Copy this to config.local.yml and adjust values for your environment
 
 app:
-  name: "Clipkart Clone API"
+  name: "LoopyMart"
   debug: false
   secret_key: "your-secret-key-change-in-production"
   algorithm: "HS256"
-  access_token_expire_minutes: 10080  # 7 days
+  access_token_expire_minutes: 10080 # 7 days
 
 database:
   # SQLite (default) or PostgreSQL for users, categories, cart, orders
-  # For PostgreSQL: postgresql+asyncpg://user:password@localhost:5432/flipkart_clone
+  # For PostgreSQL: postgresql+asyncpg://user:password@localhost:5432/loopymart
   url: "sqlite+aiosqlite:///./app.db"
 
 mongodb:
   # MongoDB connection string for products collection
   url: "mongodb://localhost:27017/"
-  db_name: "flipkart_clone"
+  db_name: "loopymart"
 
 # Razorpay payment gateway (optional)
 # Get keys from https://dashboard.razorpay.com/
@@ -24,3 +24,7 @@ mongodb:
 razorpay:
   key_id: ""
   key_secret: ""
+
+ollama:
+  url: "http://localhost:11434"
+  model: "mistral"

@@ -9,7 +9,7 @@
 
 /* Base styles */
 body {
-  @apply font-sans text-text-primary bg-flipkart-gray;
+  @apply font-sans text-text-primary bg-loopymart-gray;
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -22,11 +22,11 @@ body {
 
 /* Link styles */
 a {
-  @apply text-flipkart-blue no-underline transition-colors duration-200;
+  @apply text-loopymart-blue no-underline transition-colors duration-200;
 }
 
 a:hover {
-  @apply text-flipkart-blue-dark;
+  @apply text-loopymart-blue-dark;
 }
 
 /* Custom scrollbar for horizontal scroll sections */
@@ -44,20 +44,20 @@ a:hover {
   /* Button base */
   .btn {
     @apply inline-flex items-center justify-center px-4 py-2 rounded-sm font-medium text-sm
-           cursor-pointer border border-flipkart-gray-dark bg-white text-text-primary
+           cursor-pointer border border-loopymart-gray-dark bg-white text-text-primary
            transition-all duration-200 hover:bg-gray-50;
   }
 
   .btn-primary {
-    @apply bg-flipkart-blue text-white border-flipkart-blue hover:bg-flipkart-blue-dark;
+    @apply bg-loopymart-blue text-white border-loopymart-blue hover:bg-loopymart-blue-dark;
   }
 
   .btn-secondary {
-    @apply bg-white text-flipkart-blue border-flipkart-blue hover:bg-blue-50;
+    @apply bg-white text-loopymart-blue border-loopymart-blue hover:bg-blue-50;
   }
 
   .btn-success {
-    @apply bg-flipkart-green text-white border-flipkart-green hover:opacity-90;
+    @apply bg-loopymart-green text-white border-loopymart-green hover:opacity-90;
   }
 
   .btn-danger {
@@ -83,8 +83,8 @@ a:hover {
 
   /* Form elements */
   .form-input {
-    @apply w-full px-3 py-2 border border-flipkart-gray-dark rounded-sm text-sm
-           focus:outline-none focus:border-flipkart-blue focus:ring-1 focus:ring-flipkart-blue;
+    @apply w-full px-3 py-2 border border-loopymart-gray-dark rounded-sm text-sm
+           focus:outline-none focus:border-loopymart-blue focus:ring-1 focus:ring-loopymart-blue;
   }
 
   .form-label {
@@ -101,15 +101,15 @@ a:hover {
   }
 
   .badge-success {
-    @apply bg-flipkart-green text-white;
+    @apply bg-loopymart-green text-white;
   }
 
   .badge-warning {
-    @apply bg-flipkart-orange text-white;
+    @apply bg-loopymart-orange text-white;
   }
 
   .badge-info {
-    @apply bg-flipkart-blue text-white;
+    @apply bg-loopymart-blue text-white;
   }
 
   /* Rating stars */
@@ -118,11 +118,11 @@ a:hover {
   }
 
   .rating-high {
-    @apply bg-flipkart-green;
+    @apply bg-loopymart-green;
   }
 
   .rating-medium {
-    @apply bg-flipkart-orange;
+    @apply bg-loopymart-orange;
   }
 
   .rating-low {
@@ -139,12 +139,12 @@ a:hover {
   }
 
   .price-discount {
-    @apply text-flipkart-green font-medium text-sm;
+    @apply text-loopymart-green font-medium text-sm;
   }
 
   /* Section headers */
   .section-header {
-    @apply flex items-center justify-between p-4 bg-white border-b border-flipkart-gray-dark;
+    @apply flex items-center justify-between p-4 bg-white border-b border-loopymart-gray-dark;
   }
 
   .section-title {

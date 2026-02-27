@@ -116,7 +116,7 @@ onUnmounted(() => {
                 {{ banner.subtitle }}
               </p>
               <button 
-                class="px-6 py-2.5 bg-white text-flipkart-blue font-medium rounded-sm
+                class="px-6 py-2.5 bg-white text-loopymart-blue font-medium rounded-sm
                        hover:bg-gray-100 transition-colors shadow-sm"
               >
                 {{ banner.cta }}

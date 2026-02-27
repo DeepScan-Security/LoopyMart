@@ -36,6 +36,34 @@ export const orders = {
   create: (data) => client.post('/orders', data),
   createPayment: (data) => client.post('/orders/create-payment', data),
   verifyPayment: (data) => client.post('/orders/verify-payment', data),
+  generateInvoice: (orderId) =>
+    client.get(`/orders/${orderId}/invoice`, { responseType: 'blob' }),
+}
+
+export const wallet = {
+  get: () => client.get('/wallet'),
+  redeem: () => client.post('/wallet/redeem'),
+  getFlagStore: () => client.get('/wallet/flag-store'),
+  purchaseFlag: (itemId) => client.post('/wallet/purchase-flag', { item_id: itemId }),
+}
+
+export const wishlist = {
+  list: () => client.get('/wishlist'),
+  create: (name) => client.post('/wishlist', { name }),
+  get: (id) => client.get(`/wishlist/${id}`),
+  rename: (id, name) => client.patch(`/wishlist/${id}`, { name }),
+  delete: (id) => client.delete(`/wishlist/${id}`),
+  addItem: (id, productId) => client.post(`/wishlist/${id}/items`, { product_id: productId }),
+  removeItem: (id, productId) => client.delete(`/wishlist/${id}/items/${productId}`),
+  checkProduct: (productId) => client.get(`/wishlist/check/${productId}`),
+  sharePreview: (id, shareTemplate) =>
+    client.post(`/wishlist/${id}/share-preview`, { share_template: shareTemplate }),
+}
+
+export const tickets = {
+  create: (data) => client.post('/tickets', data),
+  mine: () => client.get('/tickets/mine'),
+  getByUuid: (uuid) => client.get(`/tickets/${uuid}`),
 }
 
 export const admin = {
@@ -53,4 +81,43 @@ export const admin = {
     })
   },
   listOrders: () => client.get('/admin/orders'),
+  // Seller applications
+  listSellerApplications: () => client.get('/admin/seller-applications'),
+  updateSellerApplicationStatus: (id, data) => client.put(`/admin/seller-applications/${id}/status`, data),
+  // KYC
+  listKYC: () => client.get('/admin/kyc'),
+  updateKYCStatus: (id, data) => client.put(`/admin/kyc/${id}/status`, data),
+}
+
+export const seller = {
+  apply: (data) => client.post('/seller/apply', data),
+  getMyApplication: () => client.get('/seller/me'),
+}
+
+export const kyc = {
+  getMe: () => client.get('/kyc/me'),
+  create: (data) => client.post('/kyc', data),
+  uploadDocument: (file) => {
+    const form = new FormData()
+    form.append('file', file)
+    return client.post('/kyc/upload-document', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+}
+
+export const ratings = {
+  create: (data) => client.post('/ratings', data),
+  getMyRating: (productId) => client.get(`/ratings/my-rating/${productId}`),
+  getProductStats: (productId) => client.get(`/ratings/product/${productId}/stats`),
+  listProductRatings: (productId, skip = 0, limit = 50) =>
+    client.get(`/ratings/product/${productId}`, { params: { skip, limit } }),
+}
+
+export const addresses = {
+  list: () => client.get('/addresses'),
+  create: (data) => client.post('/addresses', data),
+  update: (id, data) => client.patch(`/addresses/${id}`, data),
+  delete: (id) => client.delete(`/addresses/${id}`),
+  setDefault: (id) => client.post(`/addresses/${id}/default`),
 }

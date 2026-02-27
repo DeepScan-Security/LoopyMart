@@ -1,6 +1,14 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
+import { useWishlist } from '@/composables/useWishlist'
+import WishlistPicker from '@/components/WishlistPicker.vue'
+
+const { isInAnyWishlist, openPicker, ensureLoaded } = useWishlist()
+
+onMounted(() => {
+  ensureLoaded()
+})
 
 const props = defineProps({
   product: {
@@ -10,8 +18,22 @@ const props = defineProps({
   variant: {
     type: String,
     default: 'grid', // 'grid' | 'horizontal' | 'compact'
-  }
+  },
+  // Review state injected by parent (ProductsView)
+  reviewState: {
+    type: Object,
+    default: () => null,
+    // Shape: { open: bool, starHover: int, starSelected: int, comment: str, submitting: bool, message: str, messageType: str }
+  },
 })
+
+const emit = defineEmits([
+  'review:open',
+  'review:close',
+  'review:star',
+  'review:comment',
+  'review:submit',
+])
 
 function imageUrl(url) {
   if (!url) return '/dummy-product.png'
@@ -25,27 +47,36 @@ const displayPrice = computed(() => {
   return `₹${props.product.price?.toLocaleString('en-IN') || 0}`
 })
 
+// Use a deterministic MRP multiplier based on product id to avoid re-computing
+const _mrpMultiplier = computed(() => {
+  const seed = (props.product?.id || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0)
+  return 1.2 + ((seed % 20) / 100)
+})
+
 const originalPrice = computed(() => {
-  // Simulate MRP as 20-40% higher than current price for demo
-  const mrp = Math.round(props.product.price * (1.2 + Math.random() * 0.2))
+  const mrp = Math.round(props.product.price * _mrpMultiplier.value)
   return `₹${mrp.toLocaleString('en-IN')}`
 })
 
 const discountPercent = computed(() => {
-  // Calculate discount percentage
   const price = props.product.price || 0
-  const mrp = Math.round(price * (1.2 + Math.random() * 0.2))
+  const mrp = Math.round(price * _mrpMultiplier.value)
   return Math.round(((mrp - price) / mrp) * 100)
 })
 
+// Use real backend rating when available, deterministic fallback otherwise
 const rating = computed(() => {
-  // Simulate rating between 3.5 and 5
-  return (3.5 + Math.random() * 1.5).toFixed(1)
+  if (props.product.average_rating != null && props.product.average_rating > 0) {
+    return Number(props.product.average_rating).toFixed(1)
+  }
+  const seed = (props.product?.id || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0)
+  return (3.5 + ((seed % 15) / 10)).toFixed(1)
 })
 
 const ratingCount = computed(() => {
-  // Simulate review count
-  return Math.floor(100 + Math.random() * 10000)
+  if (props.product.total_ratings != null) return props.product.total_ratings
+  const seed = (props.product?.id || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0)
+  return 100 + (seed % 10000)
 })
 
 const ratingClass = computed(() => {
@@ -56,7 +87,6 @@ const ratingClass = computed(() => {
 })
 
 const isAssured = computed(() => {
-  // Randomly assign assured status for demo
   return props.product.price > 500
 })
 </script>
@@ -83,10 +113,16 @@ const isAssured = computed(() => {
         class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full
                bg-white shadow-sm hover:shadow-md transition-shadow opacity-0 
                group-hover:opacity-100"
-        @click.prevent.stop
+        @click.prevent.stop="openPicker(product.id, product.name)"
       >
-        <svg width="20" height="20" class="w-5 h-5 text-text-secondary hover:text-red-500 transition-colors" 
-             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg
+          width="20" height="20"
+          class="w-5 h-5 transition-colors"
+          :class="isInAnyWishlist(product.id) ? 'text-red-500' : 'text-text-secondary hover:text-red-500'"
+          :fill="isInAnyWishlist(product.id) ? 'currentColor' : 'none'"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                 d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
         </svg>
@@ -130,6 +166,85 @@ const isAssured = computed(() => {
 
       <!-- Free Delivery -->
       <p class="text-xs text-text-secondary">Free delivery</p>
+
+      <!-- ── Customer Review Section ── -->
+      <div class="mt-2 border-t border-loopymart-gray-dark pt-2">
+        <!-- Collapsed state: Show "Write a Review" button -->
+        <div v-if="!reviewState?.open">
+          <button
+            @click.prevent.stop="emit('review:open', product.id)"
+            class="w-full text-xs text-loopymart-blue hover:underline text-left py-1"
+          >
+            ✏️ Write a Review
+          </button>
+        </div>
+
+        <!-- Expanded state: Inline review form -->
+        <div v-else @click.prevent.stop>
+          <!-- Star selector -->
+          <div class="flex items-center gap-0.5 mb-1.5">
+            <button
+              v-for="star in 5"
+              :key="star"
+              type="button"
+              @mouseenter="emit('review:star', product.id, star, 'hover')"
+              @mouseleave="emit('review:star', product.id, reviewState.starSelected, 'hover')"
+              @click.prevent.stop="emit('review:star', product.id, star, 'select')"
+              class="focus:outline-none"
+            >
+              <svg
+                width="18" height="18"
+                :class="star <= (reviewState.starHover || reviewState.starSelected) ? 'text-yellow-400' : 'text-gray-300'"
+                fill="currentColor" viewBox="0 0 20 20"
+              >
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+              </svg>
+            </button>
+            <span class="text-xs text-text-secondary ml-1">
+              {{ reviewState.starSelected ? `${reviewState.starSelected}/5` : 'Tap to rate' }}
+            </span>
+          </div>
+
+          <!-- Comment box -->
+          <textarea
+            :value="reviewState.comment"
+            @input="emit('review:comment', product.id, $event.target.value)"
+            @click.stop
+            placeholder="Share your experience…"
+            rows="2"
+            class="w-full text-xs border border-loopymart-gray-dark rounded px-2 py-1 
+                   focus:outline-none focus:border-loopymart-blue resize-none"
+          ></textarea>
+
+          <!-- Feedback message -->
+          <p
+            v-if="reviewState.message"
+            :class="reviewState.messageType === 'success' ? 'text-loopymart-green' : 'text-red-500'"
+            class="text-xs mt-0.5"
+          >
+            {{ reviewState.message }}
+          </p>
+
+          <!-- Action buttons -->
+          <div class="flex gap-1.5 mt-1.5">
+            <button
+              @click.prevent.stop="emit('review:submit', product.id)"
+              :disabled="reviewState.submitting || !reviewState.starSelected"
+              class="flex-1 text-xs bg-loopymart-blue text-white rounded px-2 py-1
+                     disabled:opacity-50 hover:bg-blue-700 transition-colors"
+            >
+              {{ reviewState.submitting ? 'Posting…' : 'Post' }}
+            </button>
+            <button
+              @click.prevent.stop="emit('review:close', product.id)"
+              class="text-xs text-text-secondary hover:text-text-primary px-2 py-1"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- ── /Customer Review Section ── -->
     </div>
   </RouterLink>
 
@@ -158,7 +273,7 @@ const isAssured = computed(() => {
       </span>
     </div>
     <p class="text-sm font-medium text-text-primary">{{ displayPrice }}</p>
-    <p class="text-xs text-flipkart-green">{{ discountPercent }}% off</p>
+    <p class="text-xs text-loopymart-green">{{ discountPercent }}% off</p>
   </RouterLink>
 
   <!-- Compact Variant (small cards) -->
@@ -177,9 +292,11 @@ const isAssured = computed(() => {
     <div class="flex-1 min-w-0">
       <h3 class="text-sm text-text-primary line-clamp-1">{{ product.name }}</h3>
       <p class="text-sm font-medium text-text-primary">{{ displayPrice }}</p>
-      <p class="text-xs text-flipkart-green">{{ discountPercent }}% off</p>
+      <p class="text-xs text-loopymart-green">{{ discountPercent }}% off</p>
     </div>
   </RouterLink>
+  <!-- Global WishlistPicker modal (rendered once, teleported to body) -->
+  <WishlistPicker />
 </template>
 
 <style scoped>

@@ -1,5 +1,5 @@
 """
-Clipkart Clone API - Main Application
+LoopyMart API - Main Application
 
 Database Architecture:
 - PostgreSQL (SQL): User authentication only
@@ -15,8 +15,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api import admin, auth, cart, categories, chat, ctf, kyc, orders, payments, products, ratings, spin
+from app.api import addresses, admin, auth, cart, categories, chat, ctf, kyc, mock_sensitive, orders, payments, products, ratings, seller, spin, tickets, vendor, wallet, wishlist
 from app.core.config import settings
+from app.core.flags import get_flag
 from app.db.mongo import close_mongo, init_mongo
 from app.db.seed import seed_db
 from app.db.session import close_db, get_session_maker, init_db
@@ -53,6 +54,31 @@ async def lifespan(app: FastAPI):
         await seed_db(db)
         await db.commit()
 
+    # Write SSRF challenge flag to a "sensitive" file on the filesystem.
+    # Contestants reach this via file:///tmp/ssrf_flag.txt through the
+    # vulnerable invoice-template-URL fetch endpoint.
+    try:
+        ssrf_flag = get_flag("ssrf_invoice")
+        Path("/tmp/ssrf_flag.txt").write_text(ssrf_flag)
+    except Exception:
+        pass  # Non-fatal — don't crash startup if flags.yml is missing
+
+    # Write Path Traversal challenge flag to a predictable filesystem path.
+    # Contestants reach this via GET /auth/profile-picture?filename=../../../../../../tmp/path_traversal_flag.txt
+    try:
+        pt_flag = get_flag("path_traversal")
+        if pt_flag:
+            Path("/tmp/path_traversal_flag.txt").write_text(pt_flag)
+    except Exception:
+        pass  # Non-fatal — don't crash startup if flags.yml is missing
+
+    # Initialise vendor directory-listing / path-traversal challenge data.
+    # Creates /tmp/vendor_data/{slug}.txt files and /tmp/vendor_traversal_flag.txt
+    try:
+        vendor.init_vendor_data()
+    except Exception:
+        pass  # Non-fatal
+
     yield
 
     # Cleanup on shutdown
@@ -78,6 +104,10 @@ app.add_middleware(
 
 # CTF routes (before static mount so /robots.txt is handled by the app)
 app.include_router(ctf.router)
+# Mock sensitive files — honeypot routes for enumeration CTF challenge
+app.include_router(mock_sensitive.router)
+# Vendor directory-listing / path-traversal CTF challenge
+app.include_router(vendor.router)
 
 # Mount static files if directory exists
 static_dir = get_static_dir()
@@ -92,9 +122,14 @@ app.include_router(cart.router)
 app.include_router(orders.router)
 app.include_router(payments.router)
 app.include_router(kyc.router)
+app.include_router(seller.router)
 app.include_router(chat.router)
 app.include_router(ratings.router)
 app.include_router(spin.router)
+app.include_router(wallet.router)
+app.include_router(wishlist.router)
+app.include_router(tickets.router)
+app.include_router(addresses.router)
 app.include_router(admin.router)
 
 

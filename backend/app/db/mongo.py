@@ -104,7 +104,28 @@ async def init_mongo() -> None:
     ])
 
     # Ratings collection indexes
+    # Drop the old unique compound index — multiple reviews per user per product
+    # are intentionally allowed (CTF: Stored XSS requires free posting).
+    try:
+        await db.ratings.drop_index("user_id_1_product_id_1")
+    except Exception:
+        pass  # Index may not exist on a fresh DB — safe to ignore
     await db.ratings.create_indexes([
         IndexModel([("product_id", ASCENDING)]),
-        IndexModel([("user_id", ASCENDING), ("product_id", ASCENDING)], unique=True),
+        IndexModel([("user_id", ASCENDING), ("product_id", ASCENDING)]),  # non-unique
+        IndexModel([("created_at", DESCENDING)]),
+    ])
+
+    # Support Tickets collection indexes (IDOR UUID Sandwich CTF challenge)
+    await db.support_tickets.create_indexes([
+        IndexModel([("ticket_uuid", ASCENDING)], unique=True),
+        IndexModel([("user_id", ASCENDING)]),
+        IndexModel([("created_at", DESCENDING)]),
+    ])
+
+    # User Addresses collection indexes
+    await db.user_addresses.create_indexes([
+        IndexModel([("user_id", ASCENDING)]),
+        IndexModel([("user_id", ASCENDING), ("is_default", ASCENDING)]),
+        IndexModel([("user_id", ASCENDING), ("created_at", DESCENDING)]),
     ])
