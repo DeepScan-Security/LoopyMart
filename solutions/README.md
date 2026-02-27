@@ -24,6 +24,7 @@ vulnerability in the LoopyMart security-training platform.
 | 10 | [sensitive-files-enum/](sensitive-files-enum/) | *(recon utility)* | Recon | Easy | Async unauthenticated probe of 175+ common sensitive paths |
 | 11 | [puppeteer-mock-cookie/](puppeteer-mock-cookie/) | `puppeteer_mock_cookie` | Web / Cookie Security | Easy–Medium | Admin JWT → `mock_flag` cookie (not HttpOnly) read by Puppeteer |
 | 12 | [stored-xss-bleach-mxss/](stored-xss-bleach-mxss/) | `stored_xss_bleach_mxss` | Web / Stored XSS | Hard | CVE-2021-23980: bleach 3.2.3 mXSS + regex bypass via HTML entity encoding |
+| 13 | [vendor-traversal/](vendor-traversal/) | `vendor_traversal` | Web / Dir Listing / Path Traversal | Easy–Medium | Real folder tree at `/vendor`; `internal-ops/flag.txt` exposed via directory listing (CWE-548) + CWE-22 `../` traversal to `/tmp` |
 
 ---
 
@@ -83,6 +84,9 @@ python solutions/stored-xss-bleach-mxss/solve.py --email $EMAIL --password $PASS
 
 # Option B: Python fallback  
 python solutions/puppeteer-mock-cookie/solve.py --email $ADMIN_EMAIL --password $ADMIN_PASS --url $URL
+
+# 13 — Vendor Directory Listing + Path Traversal (no creds needed)
+python solutions/vendor-traversal/solve.py --url $URL
 ```
 
 ---

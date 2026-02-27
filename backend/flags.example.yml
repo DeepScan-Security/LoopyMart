@@ -79,6 +79,15 @@ challenges:
   stored_xss_bleach_mxss:
     flag: "CTF{5t0r3d_xss_bl34ch_mxss_CVE_2021_23980}"
 
+  # CTF Challenge: Vendor Directory Listing + Path Traversal.
+  # GET /vendor returns an Apache-style HTML directory listing (CWE-548).
+  # GET /vendor/{path} joins the caller-supplied path to the vendor data
+  # directory with NO canonicalisation — plain '../' sequences escape the root.
+  # Exploit A (listing):    GET /vendor → find "InternalOps Inc./" entry → GET /vendor/internal-ops.txt → flag
+  # Exploit B (traversal):  GET /vendor/../vendor_traversal_flag.txt → flag
+  vendor_traversal:
+    flag: "CTF{v3nd0r_d1r_l1st1ng_tr4v3rs4l}"
+
 # AI Chat bot configuration
 chat:
   system_prompt: |
