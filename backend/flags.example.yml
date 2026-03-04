@@ -88,6 +88,37 @@ challenges:
   vendor_traversal:
     flag: "CTF{v3nd0r_d1r_l1st1ng_tr4v3rs4l}"
 
+# ---------------------------------------------------------------------------
+# Flag Visibility Control
+# ---------------------------------------------------------------------------
+# Use this section to enable or disable flag printing per challenge without
+# modifying any backend code.  The application behaves normally in every
+# other way; the vulnerability can still be exploited — the attacker just
+# receives "[FLAG_HIDDEN]" instead of the real flag value.
+#
+# show_all: true   → all flags visible (default when key is absent)
+# show_all: false  → ALL flags hidden at once; per-challenge keys are ignored
+#
+# Individual keys default to true when absent, so you only need to list the
+# challenges you want to hide.
+visibility:
+  show_all: true          # Master switch — set false to hide everything at once
+
+  # Per-challenge visibility (only takes effect when show_all: true)
+  robots: true
+  wishlist_ssti: true
+  ssrf_invoice: true
+  path_traversal: true
+  sqli_forgot: true
+  idor_uuid_sandwich: true
+  mass_assignment_plus: true
+  puppeteer_mock_cookie: true
+  stored_xss_bleach_mxss: true
+  vendor_traversal: true
+  spin_wheel: true
+  wallet_race: true
+  chat: true              # Controls the flag embedded in the LLM system prompt
+
 # AI Chat bot configuration
 chat:
   system_prompt: |
