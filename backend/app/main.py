@@ -59,7 +59,9 @@ async def lifespan(app: FastAPI):
     # vulnerable invoice-template-URL fetch endpoint.
     try:
         ssrf_flag = get_flag("ssrf_invoice")
-        Path("/tmp/ssrf_flag.txt").write_text(ssrf_flag)
+        # Write blank content when hidden so SSRF path still resolves the file
+        # but returns nothing that reveals a flag.
+        Path("/tmp/ssrf_flag.txt").write_text(ssrf_flag if ssrf_flag else "")
     except Exception:
         pass  # Non-fatal — don't crash startup if flags.yml is missing
 
@@ -67,8 +69,7 @@ async def lifespan(app: FastAPI):
     # Contestants reach this via GET /auth/profile-picture?filename=../../../../../../tmp/path_traversal_flag.txt
     try:
         pt_flag = get_flag("path_traversal")
-        if pt_flag:
-            Path("/tmp/path_traversal_flag.txt").write_text(pt_flag)
+        Path("/tmp/path_traversal_flag.txt").write_text(pt_flag if pt_flag else "")
     except Exception:
         pass  # Non-fatal — don't crash startup if flags.yml is missing
 

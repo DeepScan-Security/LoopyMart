@@ -268,16 +268,102 @@ chat:
 
 ### Runtime Flag API
 
-The flag loader is [backend/app/core/flags.py](backend/app/core/flags.py). It reads `flags.yml` **once** on first call and caches the result in memory.
+The single source of truth for all CTF flags is **[backend/flags.yml](backend/flags.yml)**.
+Every endpoint that surfaces a flag **must** go through the loader in [backend/app/core/flags.py](backend/app/core/flags.py).
+**No flag string (`CTF{…}` / `FLAG{…}`) may ever appear as a hardcoded literal in Python source.**
+
+The loader caches the file in memory and **automatically invalidates the cache** whenever `flags.yml` is saved (mtime-based), so edits take effect without a server restart — except for `/tmp` file artifacts (see below).
 
 ```python
 from app.core.flags import get_flag, get_chat_system_prompt, get_all_challenge_ids
 
-get_flag("ssrf_invoice")        # → "CTF{55rf_f1l3_r34d_pwn3d}" or None
-get_flag("nonexistent")         # → None
-get_all_challenge_ids()         # → ["robots", "wishlist_ssti", "ssrf_invoice", ...]
-get_chat_system_prompt()        # → full system prompt string with embedded flag
+get_flag("ssrf_invoice")        # → "CTF{…}" | "[FLAG_HIDDEN]" | None
+get_flag("nonexistent")         # → None  (challenge not in flags.yml)
+get_all_challenge_ids()         # → ["robots", "wishlist_ssti", ...]
+get_chat_system_prompt()        # → full system prompt string (flag inline or redacted)
 ```
+
+**Return value semantics of `get_flag(challenge_id)`**
+
+| Return value | Meaning | What callers should do |
+|---|---|---|
+| `"CTF{…}"` | Flag is configured and visibility is **enabled** | Include in response |
+| `None` | Flag is **hidden** (visibility disabled) **or** challenge not in `flags.yml` | Omit field / return empty body |
+
+> There is no sentinel placeholder like `[FLAG_HIDDEN]`. `None` always means "do not surface this flag". Callers must never substitute a fallback string — if `get_flag()` returns `None`, the field is simply absent from the response.
+
+---
+
+### Enabling / Disabling Flags — Single Config
+
+All visibility is controlled from one place: the `visibility:` block in **[backend/flags.yml](backend/flags.yml)**.
+No code changes are needed to hide or reveal a flag.
+
+```yaml
+# backend/flags.yml
+
+visibility:
+  show_all: false   # ← set true to reveal ALL flags instantly (master switch)
+
+  # Per-challenge overrides (only evaluated when show_all: true)
+  robots: false
+  wishlist_ssti: true   # reveal only this one while all others are hidden
+  ssrf_invoice: false
+  # … add a key for every challenge_id you want to control individually
+```
+
+**Master switch**
+- `show_all: false` → every `get_flag()` call returns `"[FLAG_HIDDEN]"` regardless of per-key values.
+- `show_all: true` → each challenge follows its own key (default `true` when key is absent).
+
+**Immediate effect vs. restart required**
+
+| Change | Takes effect |
+|---|---|
+| Edit `visibility` keys in `flags.yml` | Immediately (next request — no restart needed) |
+| Change a flag *value* in `flags.yml` | Immediately (next request) |
+| Add a new challenge to `challenges:` block | Immediately |
+| `/tmp/ssrf_flag.txt`, `/tmp/path_traversal_flag.txt`, `/tmp/vendor_*` | **Restart required** — these are written once at startup from `get_flag()` |
+
+> After toggling `show_all` or disabling challenges that write `/tmp` artifacts (`ssrf_invoice`, `path_traversal`, `vendor_traversal`), restart the backend to sync the filesystem files:
+> ```sh
+> # Restart backend to rewrite /tmp flag files
+> pkill -f "uvicorn app.main:app" && uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload
+> # Verify
+> cat /tmp/ssrf_flag.txt              # should show [FLAG_HIDDEN] when disabled
+> curl http://localhost:8001/robots.txt
+> curl http://localhost:8001/flags/spin_wheel
+> ```
+
+---
+
+### Flag Control Contract — Rules for New Challenges
+
+> **Follow these rules exactly when adding a new CTF challenge.**
+> This ensures the single-config visibility system works for all challenges without exception.
+
+**✅ DO**
+1. Add the flag to `flags.yml` under `challenges.<your_challenge_id>.flag` **before writing any backend code**.
+2. Fetch the flag in your endpoint exclusively via `get_flag("your_challenge_id")`.
+3. Handle all three return states gracefully:
+   ```python
+   flag = get_flag("your_challenge_id")
+   # flag == "CTF{…}"   → include in response (visible)
+   # flag == None       → omit field / return empty body (hidden or not configured)
+   if flag:
+       response.flag = flag   # only assign when present
+   ```
+4. Add `your_challenge_id: true` to the `visibility:` block in **both** `flags.yml` and `flags.example.yml`.
+5. If your challenge writes the flag to a `/tmp` file at startup (like SSRF, path-traversal, vendor), call `get_flag()` at startup so the file reflects current visibility. Document the restart requirement in your challenge's README.
+
+**❌ NEVER DO**
+- Hardcode `or "CTF{some_flag}"` fallback literals anywhere in Python source.
+- Use any placeholder text (`[FLAG_HIDDEN]`, `[FLAG_NOT_CONFIGURED]`, etc.) — `None` is the only signal and callers must omit the field.
+- Read `flags.yml` directly — always go through `get_flag()`.
+- Store the raw flag value in a database field then return it verbatim without going through `get_flag()` at read time. (Tickets handle this correctly — `_doc_to_response()` calls `get_flag()` live.)
+- Forget `response_model_exclude_unset=True` on routes with Optional flag fields — without it, hidden fields appear as `null` instead of being omitted.
+
+---
 
 ### Challenge ID → Flag Mapping
 
@@ -290,13 +376,12 @@ get_chat_system_prompt()        # → full system prompt string with embedded fl
 | `wallet_race` | `CTF{r4c3_c0nd1t10n_d0ubl3_sp3nd}` | `api/wallet.py` → purchasable from flag store at ₹333 (normal max ₹250) |
 | `path_traversal` | `CTF{p4th_tr4v3rs4l_pr0f1l3_pwn3d}` | `api/auth.py` → `GET /auth/profile-picture?filename=…`; `main.py` writes to `/tmp/path_traversal_flag.txt` on startup |
 | `sqli_forgot` | `CTF{sql1_forg0t_p4ssw0rd_pwn3d}` | `api/auth.py` → `POST /auth/forgot-password`; raw SQL f-string sink in email lookup |
-| `idor_uuid_sandwich` | `CTF{1d0r_uu1d_s4ndw1ch_pwn3d}` | `api/tickets.py` → `GET /tickets/{uuid}`; no `user_id` ownership check; flag in hidden internal ticket |
+| `idor_uuid_sandwich` | `CTF{1d0r_uu1d_s4ndw1ch_pwn3d}` | `api/tickets.py` → `GET /tickets/{uuid}`; no `user_id` ownership check; flag resolved at read time via `get_flag()` |
 | `mass_assignment_plus` | `CTF{m4ss_4ss1gnm3nt_plus_pwn3d}` | `api/auth.py` → `POST /auth/upgrade-black` on successful mass-assignment bypass; also re-emitted by `GET /auth/me` for existing Plus members |
 | `puppeteer_mock_cookie` | `CTF{pUpp3t33r_c00k13_3xf1ltr4t10n}` | `api/ctf.py` → `POST /ctf/mock-flag-cookie`; set as JS-readable `mock_flag` cookie and in JSON body |
 | `stored_xss_bleach_mxss` | `CTF{5t0r3d_xss_bl34ch_mxss_CVE_2021_23980}` | `api/ratings.py` → `POST /ratings` review field; bleach 3.2.3 mXSS (CVE-2021-23980) + regex bypass via HTML entity encoding; rendered via `v-html` |
+| `vendor_traversal` | `CTF{v3nd0r_d1r_l1st1ng_tr4v3rs4l}` | `api/vendor.py` → `GET /vendor/internal-ops/flag.txt`; written to `/tmp/vendor_traversal_flag.txt` on startup |
 | *(LLM)* | `FLAG{PR0MPT_3XF1LTR4T10N_SUCC3SS}` | `chat.system_prompt` in `flags.yml`; read by `api/chat.py` via `get_chat_system_prompt()` |
-
-> **Rule:** Always add the flag to `flags.yml` **first**, then wire the vulnerable endpoint to call `get_flag()`. Never hardcode flag strings in Python source files.
 
 ---
 

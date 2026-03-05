@@ -94,7 +94,6 @@ def _resolve_flag_value(challenge: dict[str, Any]) -> str | None:
     return None
 
 
-_FLAG_HIDDEN = "[FLAG_HIDDEN]"
 _FLAG_PATTERN = re.compile(r'(?:CTF|FLAG)\{[^}]*\}')
 
 
@@ -122,9 +121,12 @@ def _is_flag_visible(challenge_id: str) -> bool:
 
 def get_flag(challenge_id: str) -> str | None:
     """
-    Return the flag string for the given challenge_id, or None if missing/invalid.
-    Returns ``'[FLAG_HIDDEN]'`` when the challenge is disabled in the
-    ``visibility`` config block of flags.yml.
+    Return the flag string for the given challenge_id, or ``None`` if the
+    challenge is missing/invalid **or** if its visibility is disabled in
+    ``flags.yml``.
+
+    Callers should treat ``None`` as "no flag to show" — omit the field from
+    the response entirely rather than substituting a placeholder string.
     """
     data = _load_flags_yaml()
     challenges = data.get("challenges")
@@ -137,7 +139,7 @@ def get_flag(challenge_id: str) -> str | None:
     if flag is None:
         return None
     if not _is_flag_visible(challenge_id):
-        return _FLAG_HIDDEN
+        return None  # hidden — callers omit the field; no sentinel text
     return flag
 
 
@@ -154,10 +156,10 @@ def get_chat_system_prompt() -> str | None:
     """Return the AI chat system prompt from flags.yml, or None if not configured.
 
     When ``visibility.chat`` is ``false`` in flags.yml, any flag-shaped token
-    (``CTF{…}`` or ``FLAG{…}``) inside the prompt is replaced with
-    ``'[FLAG_HIDDEN]'`` so the LLM never receives the real flag value.
-    The application still behaves normally — the exploit path still works,
-    the attacker just extracts the placeholder instead of the real flag.
+    (``CTF{…}`` or ``FLAG{…}``) is stripped from the prompt entirely so the
+    LLM never receives any flag value.  The application behaves normally;
+    the challenge is still exploitable — the attacker just gets an empty
+    string where the flag was.
     """
     data = _load_flags_yaml()
     chat_cfg = data.get("chat")
@@ -168,5 +170,5 @@ def get_chat_system_prompt() -> str | None:
         return None
     prompt = str(prompt).strip()
     if not _is_flag_visible("chat"):
-        prompt = _FLAG_PATTERN.sub(_FLAG_HIDDEN, prompt)
+        prompt = _FLAG_PATTERN.sub("", prompt)
     return prompt

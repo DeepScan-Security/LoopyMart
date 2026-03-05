@@ -47,19 +47,16 @@ def flag_txt(request: Request) -> str:
     host = request.client.host if request.client else ""
     if host not in ("127.0.0.1", "::1", "localhost"):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-    return (get_flag("ssrf_invoice") or "flag not configured") + "\n"
+    flag = get_flag("ssrf_invoice")
+    return (flag + "\n") if flag else ""
 
 
 @router.get("/flags/{challenge_id}", response_class=PlainTextResponse)
 def get_challenge_flag(challenge_id: str) -> str:
-    """Return the flag for the given challenge_id as plain text."""
+    """Return the flag for the given challenge_id as plain text.
+    Returns an empty 200 body when the challenge is hidden or not configured."""
     flag = get_flag(challenge_id)
-    if flag is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Challenge not found or flag not configured",
-        )
-    return flag
+    return flag if flag else ""
 
 
 @router.post("/ctf/mock-flag-cookie")
@@ -86,13 +83,15 @@ async def mock_flag_cookie(
     """
     flag = get_flag("puppeteer_mock_cookie")
     if not flag:
-        flag = "CTF{flag_not_configured}"
+        # Flag is hidden or not configured — return a normal-looking admin response
+        # with no flag field or cookie so the app looks genuine.
+        return JSONResponse(content={"message": "Admin access confirmed."})
 
     response = JSONResponse(
         content={
             "message": "Admin access confirmed. Flag set as a browser cookie.",
             "hint": "Check your cookies for `mock_flag`.",
-            "flag": flag,           # Also returned in JSON for the Python solve path
+            "flag": flag,
         }
     )
     response.set_cookie(

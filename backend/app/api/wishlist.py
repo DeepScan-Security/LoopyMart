@@ -264,7 +264,9 @@ async def share_preview(
     template_context = {
         "wishlist": wishlist_ns,
         "user":     user_ns,
-        # ⚠️  CTF: the flag is injected into the template context
+        # ⚠️  CTF: the flag is injected into the template context.
+        # When visibility is disabled, get_flag() returns None — the template
+        # variable resolves to an empty string so the rendered output looks normal.
         "flag":     get_flag("wishlist_ssti") or "",
     }
 

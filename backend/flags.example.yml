@@ -1,24 +1,11 @@
-# CTF challenge flags - copy to flags.yml and set real values.
-# Each challenge has either "flag" (string) or "parts" (list) with optional "separator".
+# CTF challenge flags — copy to flags.yml and set real flag values.
+# Each challenge has either "flag" (single string) or "parts" (list joined by "separator").
+# See README.md § "Flag Control Contract" for full developer rules.
 
 challenges:
   robots:
     flag: "CTF{look_at_robots}"
 
-  challenge2:
-    flag: "CTF{single_flag}"
-
-  challenge3:
-    parts:
-      - "CTF{"
-      - "part1"
-      - "_"
-      - "part2"
-      - "}"
-    separator: ""
-
-  # CTF Challenge: Server-Side Template Injection via wishlist share-preview.
-  # Set this to a real flag value in your flags.yml.
   wishlist_ssti:
     flag: "CTF{t3mpl4t3_1nj3ct10n_ftw}"
 
@@ -88,8 +75,18 @@ challenges:
   vendor_traversal:
     flag: "CTF{v3nd0r_d1r_l1st1ng_tr4v3rs4l}"
 
-# ---------------------------------------------------------------------------
-# Flag Visibility Control
+  # CTF Challenge: Weak PRNG Spin Wheel.
+  # POST /spin seeds Python's random with int(time.time()) before picking the prize.
+  # Predict the seed locally and fire the request at the right second to win mystery.
+  spin_wheel:
+    flag: "CTF{w34k_prng_pr3d1ct4bl3_sp1n}"
+
+  # CTF Challenge: Race Condition Cashback.
+  # POST /wallet/redeem has a TOCTOU non-atomic read-sleep-write.
+  # Flood concurrent redeem requests to multiply balance above the \u20b9333 flag price.
+  wallet_race:
+    flag: "CTF{r4c3_c0nd1t10n_d0ubl3_sp3nd}"
+
 # ---------------------------------------------------------------------------
 # Use this section to enable or disable flag printing per challenge without
 # modifying any backend code.  The application behaves normally in every
@@ -102,22 +99,24 @@ challenges:
 # Individual keys default to true when absent, so you only need to list the
 # challenges you want to hide.
 visibility:
-  show_all: true          # Master switch — set false to hide everything at once
+  show_all: false         # Master switch — false = ALL flags hidden (safe default for new installs)
+                          # Set true to reveal all, then tune per-challenge keys below
 
-  # Per-challenge visibility (only takes effect when show_all: true)
-  robots: true
-  wishlist_ssti: true
-  ssrf_invoice: true
-  path_traversal: true
-  sqli_forgot: true
-  idor_uuid_sandwich: true
-  mass_assignment_plus: true
-  puppeteer_mock_cookie: true
-  stored_xss_bleach_mxss: true
-  vendor_traversal: true
-  spin_wheel: true
-  wallet_race: true
-  chat: true              # Controls the flag embedded in the LLM system prompt
+  # Per-challenge visibility — only evaluated when show_all: true.
+  # Absent keys default to true (visible), so list only what you want to hide.
+  robots: false
+  wishlist_ssti: false
+  ssrf_invoice: false
+  path_traversal: false
+  sqli_forgot: false
+  idor_uuid_sandwich: false
+  mass_assignment_plus: false
+  puppeteer_mock_cookie: false
+  stored_xss_bleach_mxss: false
+  vendor_traversal: false
+  spin_wheel: false
+  wallet_race: false
+  chat: false             # Controls the flag embedded in the LLM system prompt
 
 # AI Chat bot configuration
 chat:
