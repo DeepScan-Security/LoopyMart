@@ -120,8 +120,8 @@ services:
     volumes:
       - ollama_data:/root/.ollama
     # Uncomment to expose Ollama outside the Docker network (e.g. for local dev):
-    # ports:
-    #   - "11434:11434"
+    ports:
+      - "11434:11434"
 
 volumes:
   mariadb_data:
