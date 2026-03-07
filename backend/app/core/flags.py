@@ -4,6 +4,7 @@ Supports single-flag and multi-part (joined) flags per challenge.
 """
 
 import logging
+import re
 from pathlib import Path
 from typing import Any
 
@@ -93,16 +94,53 @@ def _resolve_flag_value(challenge: dict[str, Any]) -> str | None:
     return None
 
 
+_FLAG_PATTERN = re.compile(r'(?:CTF|FLAG)\{[^}]*\}')
+
+
+def _is_flag_visible(challenge_id: str) -> bool:
+    """Return True if the flag for challenge_id should be shown.
+
+    Reads the optional ``visibility`` block in flags.yml.  When the block or
+    a specific key is absent the flag is visible by default so that existing
+    deployments are unaffected.
+
+    Evaluation order:
+      1. ``visibility.show_all: false``  → hide everything, skip per-key check
+      2. ``visibility.<challenge_id>: false`` → hide that specific challenge
+      3. Everything else → visible
+    """
+    data = _load_flags_yaml()
+    vis = data.get("visibility")
+    if not isinstance(vis, dict):
+        return True  # no visibility block → show all
+    show_all = vis.get("show_all", True)
+    if not show_all:
+        return False  # master switch off
+    return bool(vis.get(challenge_id, True))
+
+
 def get_flag(challenge_id: str) -> str | None:
     """
-    Return the flag string for the given challenge_id, or None if missing/invalid.
+    Return the flag string for the given challenge_id, or ``None`` if the
+    challenge is missing/invalid **or** if its visibility is disabled in
+    ``flags.yml``.
+
+    Callers should treat ``None`` as "no flag to show" — omit the field from
+    the response entirely rather than substituting a placeholder string.
     """
     data = _load_flags_yaml()
     challenges = data.get("challenges")
     if not isinstance(challenges, dict):
         return None
     entry = challenges.get(challenge_id)
-    return _resolve_flag_value(entry) if entry is not None else None
+    if entry is None:
+        return None
+    flag = _resolve_flag_value(entry)
+    if flag is None:
+        return None
+    if not _is_flag_visible(challenge_id):
+        return None  # hidden — callers omit the field; no sentinel text
+    return flag
 
 
 def get_all_challenge_ids() -> list[str]:
@@ -115,10 +153,22 @@ def get_all_challenge_ids() -> list[str]:
 
 
 def get_chat_system_prompt() -> str | None:
-    """Return the AI chat system prompt from flags.yml, or None if not configured."""
+    """Return the AI chat system prompt from flags.yml, or None if not configured.
+
+    When ``visibility.chat`` is ``false`` in flags.yml, any flag-shaped token
+    (``CTF{…}`` or ``FLAG{…}``) is stripped from the prompt entirely so the
+    LLM never receives any flag value.  The application behaves normally;
+    the challenge is still exploitable — the attacker just gets an empty
+    string where the flag was.
+    """
     data = _load_flags_yaml()
     chat_cfg = data.get("chat")
     if not isinstance(chat_cfg, dict):
         return None
     prompt = chat_cfg.get("system_prompt")
-    return str(prompt).strip() if prompt else None
+    if not prompt:
+        return None
+    prompt = str(prompt).strip()
+    if not _is_flag_visible("chat"):
+        prompt = _FLAG_PATTERN.sub("", prompt)
+    return prompt

@@ -47,3 +47,6 @@ backend/flags.yml
 **/__pycache__/
 *.pyc
 podman
+
+# Solution
+solutions/.venv

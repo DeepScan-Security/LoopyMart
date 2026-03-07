@@ -70,13 +70,21 @@ router = APIRouter(prefix="/tickets", tags=["tickets"])
 # ---------------------------------------------------------------------------
 
 def _doc_to_response(doc: dict) -> TicketResponse:
-    return TicketResponse(
-        ticket_uuid=doc["ticket_uuid"],
-        subject=doc["subject"],
-        message=doc["message"],
-        created_at=doc.get("created_at"),
-        flag=doc.get("flag"),
-    )
+    # Resolve the flag live via get_flag() so visibility toggles in flags.yml
+    # apply immediately to all tickets, including ones already stored in MongoDB.
+    # Only set the flag field when there is a real value to show — omit it
+    # entirely when hidden or not configured so the response looks genuine.
+    kwargs: dict = {
+        "ticket_uuid": doc["ticket_uuid"],
+        "subject":     doc["subject"],
+        "message":     doc["message"],
+        "created_at":  doc.get("created_at"),
+    }
+    if doc.get("flag") is not None:  # internal ticket — try to surface flag
+        live_flag = get_flag("idor_uuid_sandwich")
+        if live_flag:
+            kwargs["flag"] = live_flag
+    return TicketResponse(**kwargs)
 
 
 # ---------------------------------------------------------------------------
@@ -84,7 +92,7 @@ def _doc_to_response(doc: dict) -> TicketResponse:
 # ---------------------------------------------------------------------------
 
 
-@router.post("", response_model=TicketResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=TicketResponse, status_code=status.HTTP_201_CREATED, response_model_exclude_unset=True)
 async def create_ticket(
     data: TicketCreateRequest,
     current_user: User = Depends(get_current_user),
@@ -129,7 +137,7 @@ async def create_ticket(
     return _doc_to_response(user_ticket)
 
 
-@router.get("/mine", response_model=list[TicketResponse])
+@router.get("/mine", response_model=list[TicketResponse], response_model_exclude_unset=True)
 async def list_my_tickets(
     current_user: User = Depends(get_current_user),
 ) -> list[TicketResponse]:
@@ -140,7 +148,7 @@ async def list_my_tickets(
     return [_doc_to_response(d) for d in docs]
 
 
-@router.get("/{ticket_uuid}", response_model=TicketResponse)
+@router.get("/{ticket_uuid}", response_model=TicketResponse, response_model_exclude_unset=True)
 async def get_ticket(
     ticket_uuid: str,
     current_user: User = Depends(get_current_user),  # noqa: ARG001 — auth required, ownership NOT checked

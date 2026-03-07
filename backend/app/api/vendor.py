@@ -116,14 +116,17 @@ def init_vendor_data() -> None:
             )
 
     # Create the flag vendor folder with an internal flag.txt.
-    flag = get_flag("vendor_traversal") or "CTF{flag_not_configured}"
+    # Write blank content when hidden so traversal still finds the file
+    # but returns nothing that reveals a flag.
+    flag = get_flag("vendor_traversal")
+    flag_content = (flag + "\n") if flag else ""
     flag_vendor_dir = _VENDOR_DATA_DIR / _FLAG_VENDOR_SLUG
     flag_vendor_dir.mkdir(exist_ok=True)
-    (flag_vendor_dir / "flag.txt").write_text(flag + "\n")
+    (flag_vendor_dir / "flag.txt").write_text(flag_content)
 
     # /tmp/vendor_traversal_flag.txt — reachable via one-level traversal.
     try:
-        Path("/tmp/vendor_traversal_flag.txt").write_text(flag + "\n")
+        Path("/tmp/vendor_traversal_flag.txt").write_text(flag_content)
     except Exception:
         pass
 

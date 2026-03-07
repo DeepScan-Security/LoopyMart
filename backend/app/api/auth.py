@@ -82,12 +82,15 @@ async def login(
     )
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me", response_model=UserResponse, response_model_exclude_unset=True)
 async def me(current_user: User = Depends(get_current_user)) -> UserResponse:
     response = UserResponse.model_validate(current_user)
     # Re-attach flag for Plus members so the UI can show it after a page refresh.
+    # Only set when the flag is visible — when hidden it is omitted from the response.
     if current_user.is_black_member:
-        response.plus_flag = get_flag("mass_assignment_plus")
+        flag = get_flag("mass_assignment_plus")
+        if flag:
+            response.plus_flag = flag
     return response
 
 
@@ -321,30 +324,12 @@ async def serve_profile_picture(
     return FileResponse(str(file_path), media_type="application/octet-stream")
 
 
-@router.post("/upgrade-black", response_model=UserResponse)
+@router.post("/upgrade-black", response_model=UserResponse, response_model_exclude_unset=True)
 async def upgrade_to_black(
     data: dict = Body(default={}),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> UserResponse:
-    """
-    Upgrade to LoopyMart Premium membership.
-
-    [INTENTIONALLY VULNERABLE – CTF challenge: Mass Assignment]
-    The optional JSON body is iterated and every key/value pair is blindly
-    written onto the User model via setattr() before the eligibility check
-    is evaluated.  A normal click sends no body and is rejected as
-    "not eligible".  Supplying {"is_plus_eligible": true} in the request
-    body sets that attribute on the in-memory user object, bypasses the
-    gate, and triggers the upgrade — returning the flag in the response.
-
-    Vulnerable sink:
-        for k, v in data.items():
-            setattr(user, k, v)        # ← mass-assignment, no allowlist
-
-    CWE-915  Improperly Controlled Modification of Dynamically-Determined
-             Object Attributes
-    """
     if current_user.is_black_member:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -357,9 +342,6 @@ async def upgrade_to_black(
     )
     user = result.scalar_one()
 
-    # ⚠️  VULNERABLE: every key from the request body is set on the model
-    # without any allowlist.  Attackers can set is_plus_eligible=true to
-    # bypass the eligibility gate below, or tamper with any other attribute.
     for k, v in data.items():
         setattr(user, k, v)
 
@@ -378,5 +360,7 @@ async def upgrade_to_black(
     await db.refresh(user)
 
     response = UserResponse.model_validate(user)
-    response.plus_flag = get_flag("mass_assignment_plus")
+    flag = get_flag("mass_assignment_plus")
+    if flag:
+        response.plus_flag = flag
     return response

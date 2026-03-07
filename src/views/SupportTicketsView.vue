@@ -153,10 +153,13 @@ onMounted(fetchMyTickets)
             </span>
           </div>
           <p class="text-sm text-gray-500 mb-2 line-clamp-2">{{ ticket.message }}</p>
-          <span class="inline-block font-mono text-xs bg-gray-100 text-gray-500
-                       px-2 py-0.5 rounded select-all">
+          <router-link
+            :to="{ name: 'TicketDetail', params: { uuid: ticket.ticket_uuid } }"
+            class="inline-block font-mono text-xs bg-loopymart-blue/10 text-loopymart-blue
+                   px-2 py-0.5 rounded select-all hover:bg-loopymart-blue/20 transition"
+          >
             {{ ticket.ticket_uuid }}
-          </span>
+          </router-link>
         </li>
       </ul>
     </div>

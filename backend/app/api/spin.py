@@ -22,7 +22,7 @@ router = APIRouter(prefix="/spin", tags=["spin"])
 DAILY_SPIN_LIMIT = 5
 
 
-@router.post("", response_model=SpinResultResponse)
+@router.post("", response_model=SpinResultResponse, response_model_exclude_unset=True)
 async def spin_wheel(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -59,16 +59,18 @@ async def spin_wheel(
     
     if rand < 0.1:
         # Mystery prize - CTF flag!
-        mystery_flag = get_flag("spin_wheel") or "CTF{mystery_prize}"
-        
+        # Only include mystery_flag in the response when the flag is visible;
+        # omit the field entirely when hidden so the app looks genuine.
+        mystery_flag = get_flag("spin_wheel")
         await db.commit()
-        
-        return SpinResultResponse(
+        result = SpinResultResponse(
             prize_type="mystery",
-            mystery_flag=mystery_flag,
             message="You found the Mystery Prize! Here's your special reward!",
             spins_remaining=spins_remaining,
         )
+        if mystery_flag:
+            result.mystery_flag = mystery_flag
+        return result
     
     elif rand < 0.45:
         # Wallet cash (₹10 to ₹100)

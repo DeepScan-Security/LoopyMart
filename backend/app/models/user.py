@@ -43,6 +43,9 @@ class User(Base):
     # Gamification - Daily spin wheel (5 spins per day)
     spin_count_today: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     last_spin_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+
+    # Gamification - Daily cashback redemptions (3 per day)
+    redeem_count_today: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     
     # Password reset
     reset_token: Mapped[str | None] = mapped_column(String(255), nullable=True)

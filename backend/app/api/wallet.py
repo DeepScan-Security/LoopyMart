@@ -55,28 +55,28 @@ async def redeem_cashback(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> RedeemResponse:
-    """
-    Redeem pending cashback to wallet balance.
-    
-    VULNERABLE: This endpoint intentionally has a TOCTOU race condition.
-    The balance update and pending_cashback reset are separate operations,
-    creating a window where concurrent requests can all add the cashback.
-    """
-    # STEP 1: Read state once at the START (stale read)
-    # VULNERABLE: No locking - reads potentially stale data
+
     result = await db.execute(
         select(User).where(User.id == current_user.id)
     )
     user = result.scalar_one()
-    
-    # Check if user already redeemed today (once per day limit)
+
+    # Compute effective daily count in pure Python — do NOT assign to ORM
+    # attributes here, as that marks the session dirty and causes SQLAlchemy
+    # to auto-flush a row-locking UPDATE on the first db.commit(), which would
+    # serialize concurrent requests and kill the intended race condition window.
     today = date.today()
-    if user.last_cashback_redeem_date == today:
+    is_new_day = user.last_cashback_redeem_date != today
+    effective_count = 0 if is_new_day else user.redeem_count_today
+
+    # Check daily redemption limit (3 per day)
+    DAILY_REDEEM_LIMIT = 3
+    if effective_count >= DAILY_REDEEM_LIMIT:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You can only redeem cashback once per day. Try again tomorrow!",
+            detail=f"You can only redeem cashback {DAILY_REDEEM_LIMIT} times per day. Try again tomorrow!",
         )
-    
+
     # Check if there's cashback to redeem
     if user.pending_cashback <= 0:
         raise HTTPException(
@@ -84,25 +84,22 @@ async def redeem_cashback(
             detail="No pending cashback to redeem",
         )
     
-    # VULNERABLE: Store BOTH values from the stale read
-    # These values are captured once and used later without re-checking
-    current_balance = user.wallet_balance
+
     amount = user.pending_cashback
-    
-    # STEP 2: Calculate new balance in Python (not SQL)
-    # VULNERABLE: Uses the stale read value
-    new_balance = current_balance + amount
-    
+
     # VULNERABLE: Artificial delay widens the race condition window
     # This gives attackers time to send concurrent requests
     await asyncio.sleep(0.1)
-    
-    # STEP 3: Write balance FIRST with direct value (not increment)
-    # VULNERABLE: Direct SET operation, not an atomic increment
-    # Multiple concurrent requests can all write their calculated values
+
+    # STEP 3: Increment balance with wallet_balance + :amount (not a pre-computed SET).
+    # VULNERABLE: Because the pending_cashback > 0 check and this write are in
+    # separate transactions, N concurrent requests all pass the check before any
+    # of them zeros out pending_cashback. Each then genuinely adds :amount to the
+    # current DB value, so N winners each contribute +amount — multiplying the
+    # effective cashback far beyond a single honest redeem.
     await db.execute(
-        text("UPDATE users SET wallet_balance = :balance WHERE id = :id"),
-        {"balance": new_balance, "id": user.id}
+        text("UPDATE users SET wallet_balance = wallet_balance + :amount WHERE id = :id"),
+        {"amount": amount, "id": user.id}
     )
     await db.commit()
     
@@ -115,11 +112,20 @@ async def redeem_cashback(
     )
     await db.commit()
     
-    # STEP 5: Update last redeem date (once per day tracking)
-    await db.execute(
-        text("UPDATE users SET last_cashback_redeem_date = :today WHERE id = :id"),
-        {"today": today, "id": user.id}
-    )
+    # STEP 5: Update last redeem date and counter atomically in SQL.
+    # If it's a new day, reset counter to 1; otherwise increment.
+    # Never touch ORM attributes — keeps the session clean and
+    # preserves the race condition window above.
+    if is_new_day:
+        await db.execute(
+            text("UPDATE users SET last_cashback_redeem_date = :today, redeem_count_today = 1 WHERE id = :id"),
+            {"today": today, "id": user.id}
+        )
+    else:
+        await db.execute(
+            text("UPDATE users SET redeem_count_today = redeem_count_today + 1 WHERE id = :id"),
+            {"id": user.id}
+        )
     await db.commit()
     
     # Re-fetch to get the final balance for response
@@ -144,7 +150,7 @@ async def get_flag_store(
     return FlagStoreResponse(items=FLAG_STORE_ITEMS)
 
 
-@router.post("/purchase-flag", response_model=PurchaseResponse)
+@router.post("/purchase-flag", response_model=PurchaseResponse, response_model_exclude_unset=True)
 async def purchase_flag(
     data: PurchaseRequest,
     current_user: User = Depends(get_current_user),
@@ -173,7 +179,6 @@ async def purchase_flag(
     if user.wallet_balance < item.price:
         return PurchaseResponse(
             success=False,
-            flag=None,
             message=f"Insufficient balance. You need ₹{item.price:.2f} but have ₹{user.wallet_balance:.2f}",
             new_balance=user.wallet_balance,
         )
@@ -182,12 +187,13 @@ async def purchase_flag(
     user.wallet_balance -= item.price
     await db.commit()
     
-    # Return the CTF flag
-    flag = get_flag("wallet_race") or "CTF{r4c3_c0nd1t10n_d0ubl3_sp3nd}"
-    
-    return PurchaseResponse(
+    # Return the CTF flag only when visible; omit the field entirely when hidden.
+    flag = get_flag("wallet_race")
+    purchase = PurchaseResponse(
         success=True,
-        flag=flag,
         message="Congratulations! You've discovered the secret!",
         new_balance=user.wallet_balance,
     )
+    if flag:
+        purchase.flag = flag
+    return purchase

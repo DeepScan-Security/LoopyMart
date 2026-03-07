@@ -37,6 +37,12 @@ export default defineConfig(({ mode }) => {
           target: apiTarget,
           changeOrigin: true,
         },
+        // Sensitive-file enumeration — proxy dotfiles and well-known sensitive paths
+        // to the backend so they are reachable at the Vite dev URL (127.0.0.1:5173/...)
+        '^/(\\.(git|env|htpasswd|gitignore|gitmodules|svn|npmrc|dockerignore|travis\\.yml|gitlab-ci\\.yml|DS_Store)|flags\\.yml|secrets\\.yml|config(\\.local|\\.example)?\\.yml|requirements\\.txt|pyproject\\.toml|poetry\\.lock|docker-compose\\.yml|Dockerfile|Jenkinsfile|terraform\\.tfstate|app\\.db|db\\.sqlite3|openapi\\.json|swagger\\.json|health|flag\\.txt|docs|redoc|error\\.log|access\\.log|dump\\.sql)': {
+          target: apiTarget,
+          changeOrigin: true,
+        },
       },
     },
     resolve: {
