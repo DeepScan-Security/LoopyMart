@@ -1,0 +1,51 @@
+# ─── LoopyMart Ollama ────────────────────────────────────────────────────────
+# Builds a self-contained Ollama image with the Mistral model baked in.
+#
+# The model is pulled during `docker build` (not at container start), so:
+#   • No network access is required at runtime.
+#   • `docker run` starts the server instantly — model is already on disk.
+#   • Image size is ~4 GB (model weights included in the image layer).
+#
+# Build:
+#   docker build -f Dockerfile.ollama -t loopymart-ollama .
+#   # Override model:
+#   docker build -f Dockerfile.ollama --build-arg OLLAMA_MODEL=llama3 -t loopymart-ollama .
+#
+# Run standalone:
+#   docker run --rm -p 11434:11434 loopymart-ollama
+#
+# Via Compose (opt-in):
+#   podman-compose --profile llm up --build
+# ─────────────────────────────────────────────────────────────────────────────
+
+FROM ollama/ollama
+
+ARG OLLAMA_MODEL=mistral
+
+# Bake the model into the image layer:
+#   1. Start the Ollama server in the background.
+#   2. Wait until the REST API is ready (poll /api/tags, up to 30 s).
+#   3. Pull the target model — weights land in /root/.ollama inside this layer.
+#   4. Stop the server cleanly.
+#
+# The poll loop avoids hard-coded sleeps that break on slow build runners.
+RUN ollama serve & \
+    SERVER_PID=$! && \
+    echo "[build] Waiting for Ollama server to be ready..." && \
+    for i in $(seq 1 30); do \
+      if ollama list > /dev/null 2>&1; then \
+        echo "[build] Server ready after ${i}s"; \
+        break; \
+      fi; \
+      sleep 1; \
+    done && \
+    echo "[build] Pulling model: ${OLLAMA_MODEL}" && \
+    ollama pull ${OLLAMA_MODEL} && \
+    echo "[build] Model pull complete. Stopping server." && \
+    kill $SERVER_PID && \
+    wait $SERVER_PID 2>/dev/null || true
+
+EXPOSE 11434
+
+# At runtime, simply serve — model is already present in /root/.ollama
+CMD ["ollama", "serve"]
