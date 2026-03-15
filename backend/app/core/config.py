@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -51,8 +51,8 @@ class Settings(BaseSettings):
         default_factory=lambda: get_yaml_value(_yaml_config, "app", "debug", default=os.getenv("DEBUG", "false").lower() == "true")
     )
 
-    # SQL Database (PostgreSQL for users only)
-    # Format: postgresql+asyncpg://user:password@host:port/dbname
+    # SQL Database (MariaDB/MySQL for users only)
+    # Format: mysql+aiomysql://user:password@host:port/dbname
     # Falls back to SQLite for development if not set
     database_url: str = Field(
         default_factory=lambda: get_yaml_value(
@@ -60,6 +60,16 @@ class Settings(BaseSettings):
             default=os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./app.db")
         )
     )
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def fix_db_url(cls, v: str) -> str:
+        if isinstance(v, str):
+            if v.startswith("mysql://"):
+                return v.replace("mysql://", "mysql+aiomysql://", 1)
+            elif v.startswith("mariadb://"):
+                return v.replace("mariadb://", "mysql+aiomysql://", 1)
+        return v
 
     # MongoDB (for products, categories, cart, orders)
     mongodb_url: str = Field(
@@ -186,7 +196,7 @@ class Settings(BaseSettings):
             if "sqlite" in self.database_url.lower():
                 warnings.warn(
                     "Using SQLite database in production is not recommended. "
-                    "Set DATABASE_URL to a PostgreSQL connection string.",
+                    "Set DATABASE_URL to a production database connection string.",
                     UserWarning
                 )
             if self.secret_key == "dev-secret-key-change-in-production":
