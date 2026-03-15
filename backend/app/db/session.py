@@ -11,30 +11,34 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from app.core.config import settings
 from app.models.base import Base
+from app.models.user import User
 
 
-def _fix_sqlalchemy_url(url: str) -> str:
-    """Ensure standard driver prefixes point to async drivers."""
+def _fix_sqlalchemy_url(url: str, default_db: str = "loopymart") -> tuple[str, str, str]:
+    """
+    Ensure standard driver prefixes point to async drivers.
+    Returns: (Full DB URL, DB Name, Root URL without DB)
+    """
+    from urllib.parse import urlparse, urlunparse
+
     if url.startswith("mysql://"):
-        return url.replace("mysql://", "mysql+aiomysql://", 1)
-    if url.startswith("mariadb://"):
-        return url.replace("mariadb://", "mysql+aiomysql://", 1)
-    if url.startswith("postgresql://"):
-        return url.replace("postgresql://", "postgresql+asyncpg://", 1)
-    return url
+        url = url.replace("mysql://", "mysql+aiomysql://", 1)
+    elif url.startswith("mariadb://"):
+        url = url.replace("mariadb://", "mysql+aiomysql://", 1)
+    elif url.startswith("postgresql://"):
+        url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-
-def _get_db_name_and_root_url(database_url: str) -> tuple[str, str]:
-    """
-    Parse a database URL and return (db_name, url_without_db).
-    Supports mysql+aiomysql, postgresql+asyncpg, sqlite variants.
-    """
-    parsed = urlparse(database_url)
-    # path is like '/dbname' — strip the leading slash
+    parsed = urlparse(url)
     db_name = parsed.path.lstrip("/")
-    # Rebuild URL with empty path (root connection)
-    root = urlunparse(parsed._replace(path="/"))
-    return db_name, root
+    
+    if not db_name and ("mysql" in url or "postgresql" in url):
+        db_name = default_db
+        parsed = parsed._replace(path=f"/{db_name}")
+
+    full_url = urlunparse(parsed)
+    root_url = urlunparse(parsed._replace(path="/"))
+
+    return full_url, db_name, root_url
 
 # Engine will be created lazily
 _engine = None
@@ -45,7 +49,7 @@ def get_engine():
     """Get or create the SQLAlchemy async engine."""
     global _engine
     if _engine is None:
-        db_url = _fix_sqlalchemy_url(settings.database_url)
+        db_url, _, _ = _fix_sqlalchemy_url(settings.database_url)
         _engine = create_async_engine(
             db_url,
             echo=settings.debug,
@@ -88,11 +92,10 @@ async def init_db() -> None:
     Creates the database itself if it doesn't exist (MySQL/MariaDB),
     then creates all tables defined in the models.
     """
-    db_url = _fix_sqlalchemy_url(settings.database_url)
+    db_url, db_name, root_url = _fix_sqlalchemy_url(settings.database_url)
 
     # Auto-create the database for MySQL/MariaDB drivers
     if "mysql" in db_url or "mariadb" in db_url:
-        db_name, root_url = _get_db_name_and_root_url(db_url)
         if db_name:
             root_engine = create_async_engine(root_url, echo=settings.debug)
             try:
