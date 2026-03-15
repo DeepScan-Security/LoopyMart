@@ -61,16 +61,6 @@ class Settings(BaseSettings):
         )
     )
 
-    @field_validator("database_url", mode="before")
-    @classmethod
-    def fix_db_url(cls, v: str) -> str:
-        if isinstance(v, str):
-            if v.startswith("mysql://"):
-                return v.replace("mysql://", "mysql+aiomysql://", 1)
-            elif v.startswith("mariadb://"):
-                return v.replace("mariadb://", "mysql+aiomysql://", 1)
-        return v
-
     # MongoDB (for products, categories, cart, orders)
     mongodb_url: str = Field(
         default_factory=lambda: get_yaml_value(

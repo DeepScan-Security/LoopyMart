@@ -13,6 +13,17 @@ from app.core.config import settings
 from app.models.base import Base
 
 
+def _fix_sqlalchemy_url(url: str) -> str:
+    """Ensure standard driver prefixes point to async drivers."""
+    if url.startswith("mysql://"):
+        return url.replace("mysql://", "mysql+aiomysql://", 1)
+    if url.startswith("mariadb://"):
+        return url.replace("mariadb://", "mysql+aiomysql://", 1)
+    if url.startswith("postgresql://"):
+        return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    return url
+
+
 def _get_db_name_and_root_url(database_url: str) -> tuple[str, str]:
     """
     Parse a database URL and return (db_name, url_without_db).
@@ -34,8 +45,9 @@ def get_engine():
     """Get or create the SQLAlchemy async engine."""
     global _engine
     if _engine is None:
+        db_url = _fix_sqlalchemy_url(settings.database_url)
         _engine = create_async_engine(
-            settings.database_url,
+            db_url,
             echo=settings.debug,
             pool_pre_ping=True,  # Enable connection health checks
         )
@@ -76,7 +88,7 @@ async def init_db() -> None:
     Creates the database itself if it doesn't exist (MySQL/MariaDB),
     then creates all tables defined in the models.
     """
-    db_url = settings.database_url
+    db_url = _fix_sqlalchemy_url(settings.database_url)
 
     # Auto-create the database for MySQL/MariaDB drivers
     if "mysql" in db_url or "mariadb" in db_url:
