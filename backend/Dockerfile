@@ -19,6 +19,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # flags.yml is not bind-mounted at runtime)
 COPY app/ ./app/
 COPY flags.example.yml .
+COPY .env .
 
 # Pre-create uploads directory so the mount-point exists even without a volume
 RUN mkdir -p static/uploads

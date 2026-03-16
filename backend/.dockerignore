@@ -17,7 +17,6 @@ app.db
 # Live secrets — bind-mounted at runtime, not baked into the image
 flags.yml
 config.local.yml
-.env
 
 # Uploaded files — stored in a named Docker volume, not in the image
 static/uploads/
