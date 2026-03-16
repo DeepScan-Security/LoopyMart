@@ -12,6 +12,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi import APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -116,22 +117,25 @@ if static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 # Include API routers
-app.include_router(auth.router)
-app.include_router(categories.router)
-app.include_router(products.router)
-app.include_router(cart.router)
-app.include_router(orders.router)
-app.include_router(payments.router)
-app.include_router(kyc.router)
-app.include_router(seller.router)
-app.include_router(chat.router)
-app.include_router(ratings.router)
-app.include_router(spin.router)
-app.include_router(wallet.router)
-app.include_router(wishlist.router)
-app.include_router(tickets.router)
-app.include_router(addresses.router)
-app.include_router(admin.router)
+api_router = APIRouter(prefix="/api")
+api_router.include_router(auth.router)
+api_router.include_router(categories.router)
+api_router.include_router(products.router)
+api_router.include_router(cart.router)
+api_router.include_router(orders.router)
+api_router.include_router(payments.router)
+api_router.include_router(kyc.router)
+api_router.include_router(seller.router)
+api_router.include_router(chat.router)
+api_router.include_router(ratings.router)
+api_router.include_router(spin.router)
+api_router.include_router(wallet.router)
+api_router.include_router(wishlist.router)
+api_router.include_router(tickets.router)
+api_router.include_router(addresses.router)
+api_router.include_router(admin.router)
+
+app.include_router(api_router)
 
 
 @app.get("/health")
