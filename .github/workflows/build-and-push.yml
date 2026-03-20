@@ -39,3 +39,13 @@ jobs:
           tags: |
             ${{ secrets.DOCKER_FRONTEND_REPO }}:latest
             ${{ secrets.DOCKER_FRONTEND_REPO }}:${{ github.sha }}
+      
+      - name: Build and push Ollama
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.ollama
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_OLLAMA_REPO }}:latest
+            ${{ secrets.DOCKER_OLLAMA_REPO }}:${{ github.sha }}
